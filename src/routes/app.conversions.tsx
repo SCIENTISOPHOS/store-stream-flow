@@ -57,7 +57,7 @@ function ConversionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produits")
-        .select("id, nom, type_emballage, stock_actuel, statut")
+        .select("id, nom, type_emballage, stock_actuel, statut, prix_vente_unitaire, prix_achat_unitaire")
         .eq("magasin_id", magasinId!)
         .eq("statut", "actif")
         .order("nom");
