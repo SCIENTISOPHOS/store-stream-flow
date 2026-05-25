@@ -31,14 +31,16 @@ function AppLayout() {
   const location = useLocation();
   const { user, loading, isAdmin, signOut } = useAuth();
   const { magasinId, magasinNom, clear } = useMagasinStore();
+  const isAdminRoute = location.pathname.startsWith("/app/admin");
+  const canAccessCurrentRoute = Boolean(magasinId) || (isAdmin && isAdminRoute);
 
   useEffect(() => {
     if (loading) return;
     if (!user) { navigate({ to: "/login" }); return; }
-    if (!magasinId) { navigate({ to: "/select-magasin" }); return; }
-  }, [user, loading, magasinId, navigate]);
+    if (!canAccessCurrentRoute) { navigate({ to: "/select-magasin" }); return; }
+  }, [user, loading, canAccessCurrentRoute, navigate]);
 
-  if (loading || !user || !magasinId) {
+  if (loading || !user || !canAccessCurrentRoute) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -84,7 +86,7 @@ function AppLayout() {
         <div className="px-3 py-3 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
           <div className="rounded-md px-3 py-2.5" style={{ background: "var(--sidebar-accent)" }}>
             <div className="text-[10px] uppercase tracking-wider opacity-60 mb-0.5">Magasin de session</div>
-            <div className="font-semibold text-sm truncate">{magasinNom}</div>
+            <div className="font-semibold text-sm truncate">{magasinNom ?? "Aucun magasin sélectionné"}</div>
             <button
               className="text-xs opacity-70 hover:opacity-100 mt-1 inline-flex items-center gap-1"
               onClick={() => { clear(); navigate({ to: "/select-magasin" }); }}
