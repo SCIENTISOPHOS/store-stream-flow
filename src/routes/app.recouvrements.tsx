@@ -17,10 +17,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  HandCoins, Check, ChevronsUpDown, AlertCircle,
+  HandCoins, Check, ChevronsUpDown, AlertCircle, Ban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/app/recouvrements")({
   component: RecouvrementsPage,
@@ -48,6 +52,7 @@ interface Recouvrement {
 }
 
 function RecouvrementsPage() {
+  const { isAdmin } = useAuth();
   const { magasinId, magasinNom } = useMagasinStore();
   const qc = useQueryClient();
   const [clientId, setClientId] = useState("");
@@ -253,6 +258,7 @@ function RecouvrementsPage() {
                       <TableHead>Magasin</TableHead>
                       <TableHead className="text-right">Montant</TableHead>
                       <TableHead>Statut</TableHead>
+                      <TableHead className="w-[60px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -267,6 +273,15 @@ function RecouvrementsPage() {
                           <Badge variant={r.statut === "annulee" ? "destructive" : "default"}>
                             {r.statut === "annulee" ? "Annulé" : "Validé"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {isAdmin && r.statut !== "annulee" && (
+                            <CancelRecouvrementDialog rec={r} onDone={() => {
+                              qc.invalidateQueries({ queryKey: ["recouvrements-recents", magasinId] });
+                              qc.invalidateQueries({ queryKey: ["clients"] });
+                              qc.invalidateQueries({ queryKey: ["clients-recouvrement"] });
+                            }} />
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -320,6 +335,51 @@ function ClientDettePicker({
   );
 }
 
+function CancelRecouvrementDialog({ rec, onDone }: { rec: Recouvrement; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [motif, setMotif] = useState("");
+  const m = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("cancel_recouvrement", { p_recouvrement_id: rec.id, p_motif: motif });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`Recouvrement #${rec.numero} annulé`);
+      setOpen(false); setMotif(""); onDone();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+          <Ban className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Annuler le recouvrement #{rec.numero}</DialogTitle>
+          <DialogDescription>
+            La dette du client sera restaurée et le crédit restant des ventes imputées rétabli.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label>Motif (obligatoire)</Label>
+          <Textarea rows={3} value={motif} onChange={(e) => setMotif(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Retour</Button>
+          <Button variant="destructive" disabled={motif.trim().length < 3 || m.isPending}
+            onClick={() => m.mutate()}>
+            {m.isPending ? "Annulation..." : "Confirmer"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function fmt(n: number) {
   return new Intl.NumberFormat("fr-FR").format(Math.round(Number(n) || 0)) + " F";
 }
+

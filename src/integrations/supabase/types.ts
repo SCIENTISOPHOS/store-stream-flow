@@ -104,6 +104,51 @@ export type Database = {
         }
         Relationships: []
       }
+      conversions_emballage: {
+        Row: {
+          created_at: string
+          cree_par: string
+          id: string
+          magasin_id: string
+          notes: string | null
+          produit_demi_id: string
+          produit_sac_id: string
+          quantite_demi_produite: number
+          quantite_perdue: number
+          quantite_sacs: number
+          rebut_id: string | null
+          type_conversion: Database["public"]["Enums"]["type_conversion"]
+        }
+        Insert: {
+          created_at?: string
+          cree_par: string
+          id?: string
+          magasin_id: string
+          notes?: string | null
+          produit_demi_id: string
+          produit_sac_id: string
+          quantite_demi_produite: number
+          quantite_perdue?: number
+          quantite_sacs: number
+          rebut_id?: string | null
+          type_conversion: Database["public"]["Enums"]["type_conversion"]
+        }
+        Update: {
+          created_at?: string
+          cree_par?: string
+          id?: string
+          magasin_id?: string
+          notes?: string | null
+          produit_demi_id?: string
+          produit_sac_id?: string
+          quantite_demi_produite?: number
+          quantite_perdue?: number
+          quantite_sacs?: number
+          rebut_id?: string | null
+          type_conversion?: Database["public"]["Enums"]["type_conversion"]
+        }
+        Relationships: []
+      }
       magasins: {
         Row: {
           actif: boolean
@@ -227,6 +272,39 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rebuts: {
+        Row: {
+          created_at: string
+          cree_par: string
+          id: string
+          magasin_id: string
+          motif: string
+          notes: string | null
+          produit_id: string
+          quantite: number
+        }
+        Insert: {
+          created_at?: string
+          cree_par: string
+          id?: string
+          magasin_id: string
+          motif: string
+          notes?: string | null
+          produit_id: string
+          quantite: number
+        }
+        Update: {
+          created_at?: string
+          cree_par?: string
+          id?: string
+          magasin_id?: string
+          motif?: string
+          notes?: string | null
+          produit_id?: string
+          quantite?: number
         }
         Relationships: []
       }
@@ -504,6 +582,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_recouvrement: {
+        Args: { p_motif: string; p_recouvrement_id: string }
+        Returns: undefined
+      }
+      cancel_vente: {
+        Args: { p_motif: string; p_vente_id: string }
+        Returns: undefined
+      }
+      convert_sac_to_demi: {
+        Args: {
+          p_magasin_id: string
+          p_notes?: string
+          p_produit_demi_id: string
+          p_produit_sac_id: string
+          p_quantite_sacs: number
+        }
+        Returns: string
+      }
+      create_rebut: {
+        Args: {
+          p_magasin_id: string
+          p_motif: string
+          p_notes?: string
+          p_produit_id: string
+          p_quantite: number
+        }
+        Returns: string
+      }
       create_recouvrement: {
         Args: {
           p_client_id: string
@@ -521,6 +627,17 @@ export type Database = {
           p_mode: Database["public"]["Enums"]["mode_paiement"]
           p_montant_paye: number
           p_notes?: string
+        }
+        Returns: string
+      }
+      declare_sac_perce: {
+        Args: {
+          p_magasin_id: string
+          p_motif: string
+          p_notes?: string
+          p_produit_demi_id: string
+          p_produit_sac_id: string
+          p_quantite_demi_recuperable: number
         }
         Returns: string
       }
@@ -543,6 +660,7 @@ export type Database = {
       entity_statut: "actif" | "bloque" | "archive"
       mode_paiement: "comptant" | "credit" | "mixte"
       statut_transaction: "validee" | "annulee"
+      type_conversion: "sac_vers_demi" | "sac_perce"
       type_emballage: "sac" | "demi_sac" | "unite"
     }
     CompositeTypes: {
@@ -676,6 +794,7 @@ export const Constants = {
       entity_statut: ["actif", "bloque", "archive"],
       mode_paiement: ["comptant", "credit", "mixte"],
       statut_transaction: ["validee", "annulee"],
+      type_conversion: ["sac_vers_demi", "sac_perce"],
       type_emballage: ["sac", "demi_sac", "unite"],
     },
   },

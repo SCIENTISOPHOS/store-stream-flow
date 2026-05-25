@@ -16,7 +16,9 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppVentesRouteImport } from './routes/app.ventes'
 import { Route as AppRecouvrementsRouteImport } from './routes/app.recouvrements'
+import { Route as AppRebutsRouteImport } from './routes/app.rebuts'
 import { Route as AppProduitsRouteImport } from './routes/app.produits'
+import { Route as AppConversionsRouteImport } from './routes/app.conversions'
 import { Route as AppClientsRouteImport } from './routes/app.clients'
 import { Route as AppCaisseRouteImport } from './routes/app.caisse'
 import { Route as AppAdminUtilisateursRouteImport } from './routes/app.admin.utilisateurs'
@@ -58,9 +60,19 @@ const AppRecouvrementsRoute = AppRecouvrementsRouteImport.update({
   path: '/recouvrements',
   getParentRoute: () => AppRoute,
 } as any)
+const AppRebutsRoute = AppRebutsRouteImport.update({
+  id: '/rebuts',
+  path: '/rebuts',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProduitsRoute = AppProduitsRouteImport.update({
   id: '/produits',
   path: '/produits',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppConversionsRoute = AppConversionsRouteImport.update({
+  id: '/conversions',
+  path: '/conversions',
   getParentRoute: () => AppRoute,
 } as any)
 const AppClientsRoute = AppClientsRouteImport.update({
@@ -96,7 +108,9 @@ export interface FileRoutesByFullPath {
   '/select-magasin': typeof SelectMagasinRoute
   '/app/caisse': typeof AppCaisseRoute
   '/app/clients': typeof AppClientsRoute
+  '/app/conversions': typeof AppConversionsRoute
   '/app/produits': typeof AppProduitsRoute
+  '/app/rebuts': typeof AppRebutsRoute
   '/app/recouvrements': typeof AppRecouvrementsRoute
   '/app/ventes': typeof AppVentesRoute
   '/app/': typeof AppIndexRoute
@@ -110,7 +124,9 @@ export interface FileRoutesByTo {
   '/select-magasin': typeof SelectMagasinRoute
   '/app/caisse': typeof AppCaisseRoute
   '/app/clients': typeof AppClientsRoute
+  '/app/conversions': typeof AppConversionsRoute
   '/app/produits': typeof AppProduitsRoute
+  '/app/rebuts': typeof AppRebutsRoute
   '/app/recouvrements': typeof AppRecouvrementsRoute
   '/app/ventes': typeof AppVentesRoute
   '/app': typeof AppIndexRoute
@@ -126,7 +142,9 @@ export interface FileRoutesById {
   '/select-magasin': typeof SelectMagasinRoute
   '/app/caisse': typeof AppCaisseRoute
   '/app/clients': typeof AppClientsRoute
+  '/app/conversions': typeof AppConversionsRoute
   '/app/produits': typeof AppProduitsRoute
+  '/app/rebuts': typeof AppRebutsRoute
   '/app/recouvrements': typeof AppRecouvrementsRoute
   '/app/ventes': typeof AppVentesRoute
   '/app/': typeof AppIndexRoute
@@ -143,7 +161,9 @@ export interface FileRouteTypes {
     | '/select-magasin'
     | '/app/caisse'
     | '/app/clients'
+    | '/app/conversions'
     | '/app/produits'
+    | '/app/rebuts'
     | '/app/recouvrements'
     | '/app/ventes'
     | '/app/'
@@ -157,7 +177,9 @@ export interface FileRouteTypes {
     | '/select-magasin'
     | '/app/caisse'
     | '/app/clients'
+    | '/app/conversions'
     | '/app/produits'
+    | '/app/rebuts'
     | '/app/recouvrements'
     | '/app/ventes'
     | '/app'
@@ -172,7 +194,9 @@ export interface FileRouteTypes {
     | '/select-magasin'
     | '/app/caisse'
     | '/app/clients'
+    | '/app/conversions'
     | '/app/produits'
+    | '/app/rebuts'
     | '/app/recouvrements'
     | '/app/ventes'
     | '/app/'
@@ -239,11 +263,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRecouvrementsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/rebuts': {
+      id: '/app/rebuts'
+      path: '/rebuts'
+      fullPath: '/app/rebuts'
+      preLoaderRoute: typeof AppRebutsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/produits': {
       id: '/app/produits'
       path: '/produits'
       fullPath: '/app/produits'
       preLoaderRoute: typeof AppProduitsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/conversions': {
+      id: '/app/conversions'
+      path: '/conversions'
+      fullPath: '/app/conversions'
+      preLoaderRoute: typeof AppConversionsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/clients': {
@@ -287,7 +325,9 @@ declare module '@tanstack/react-router' {
 interface AppRouteChildren {
   AppCaisseRoute: typeof AppCaisseRoute
   AppClientsRoute: typeof AppClientsRoute
+  AppConversionsRoute: typeof AppConversionsRoute
   AppProduitsRoute: typeof AppProduitsRoute
+  AppRebutsRoute: typeof AppRebutsRoute
   AppRecouvrementsRoute: typeof AppRecouvrementsRoute
   AppVentesRoute: typeof AppVentesRoute
   AppIndexRoute: typeof AppIndexRoute
@@ -299,7 +339,9 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppCaisseRoute: AppCaisseRoute,
   AppClientsRoute: AppClientsRoute,
+  AppConversionsRoute: AppConversionsRoute,
   AppProduitsRoute: AppProduitsRoute,
+  AppRebutsRoute: AppRebutsRoute,
   AppRecouvrementsRoute: AppRecouvrementsRoute,
   AppVentesRoute: AppVentesRoute,
   AppIndexRoute: AppIndexRoute,
