@@ -1,13 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { useMagasinStore } from "@/lib/magasin-store";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Shield, User as UserIcon, Store, Package, Users, Wallet, TrendingUp, AlertTriangle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Shield, User as UserIcon, Store, Package, Users, Wallet, TrendingUp, AlertTriangle, ShoppingCart,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -34,7 +43,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produits")
-        .select("id, nom, type_emballage, stock_actuel, stock_seuil_alerte, prix_vente_unitaire, statut")
+        .select("id, nom, type_emballage, stock_actuel, stock_seuil_alerte, prix_vente_unitaire, statut, fournisseur_id, fournisseurs(nom)")
         .eq("magasin_id", magasinId!)
         .eq("statut", "actif");
       if (error) throw error;
@@ -194,12 +203,26 @@ function Dashboard() {
         <KpiCard icon={<Wallet className="w-4 h-4" />} label="Dette totale" value={fmtFC(detteTotale)} />
       </div>
 
-      {alertes > 0 && (
-        <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
-          <AlertTriangle className="w-4 h-4 text-destructive" />
-          <span>
-            <span className="font-medium text-destructive">{alertes}</span> produit(s) sous le seuil d'alerte de stock.
-          </span>
+      {/* Alertes de stock */}
+      {alertes > 0 ? (
+        <Card className="border-destructive/20">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <CardTitle className="text-base text-destructive">
+                {alertes} produit(s) en alerte de stock
+              </CardTitle>
+            </div>
+            <CardDescription>Stock actuel inférieur ou égal au seuil d&apos;alerte</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertesWidget produits={produits ?? []} magasinId={magasinId!} />
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex items-center gap-2 rounded-md border border-green-600/20 bg-green-600/5 px-3 py-2 text-sm">
+          <Package className="w-4 h-4 text-green-600" />
+          <span className="text-green-700">Aucun produit sous le seuil d&apos;alerte.</span>
         </div>
       )}
 
