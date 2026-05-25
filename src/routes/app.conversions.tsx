@@ -31,6 +31,8 @@ interface Produit {
   type_emballage: "sac" | "demi_sac" | "unite";
   stock_actuel: number;
   statut: string;
+  prix_vente_unitaire: number;
+  prix_achat_unitaire: number;
 }
 
 interface Conversion {
@@ -55,7 +57,7 @@ function ConversionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produits")
-        .select("id, nom, type_emballage, stock_actuel, statut")
+        .select("id, nom, type_emballage, stock_actuel, statut, prix_vente_unitaire, prix_achat_unitaire")
         .eq("magasin_id", magasinId!)
         .eq("statut", "actif")
         .order("nom");
@@ -180,16 +182,44 @@ function ConversionForm({ sacs, demis, magasinId, onDone }: {
   sacs: Produit[]; demis: Produit[]; magasinId: string; onDone: () => void;
 }) {
   const [sacId, setSacId] = useState("");
-  const [demiId, setDemiId] = useState("");
   const [qte, setQte] = useState("");
   const [notes, setNotes] = useState("");
   const sac = sacs.find((s) => s.id === sacId);
   const qteNum = Number(qte || 0);
   const insuffisant = sac && qteNum > Number(sac.stock_actuel);
 
+  const demiNom = sac ? `${sac.nom} DEMI` : "";
+  const existingDemi = useMemo(
+    () => (sac ? demis.find((d) => d.nom.trim().toLowerCase() === demiNom.trim().toLowerCase()) : undefined),
+    [sac, demis, demiNom],
+  );
+  const prixDemi = sac ? Number(sac.prix_vente_unitaire) + 500 : 0;
+
   const m = useMutation({
     mutationFn: async () => {
-      if (!sacId || !demiId || qteNum <= 0) throw new Error("Champs requis");
+      if (!sacId || !sac || qteNum <= 0) throw new Error("Champs requis");
+
+      let demiId = existingDemi?.id;
+      if (!demiId) {
+        const { data: created, error: insErr } = await supabase
+          .from("produits")
+          .insert({
+            magasin_id: magasinId,
+            nom: demiNom,
+            type_emballage: "demi_sac",
+            prix_vente_unitaire: prixDemi,
+            prix_achat_unitaire: Number(sac.prix_achat_unitaire) / 2,
+            stock_actuel: 0,
+            stock_seuil_alerte: 0,
+            produit_parent_id: sac.id,
+            statut: "actif",
+          })
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        demiId = created!.id;
+      }
+
       const { error } = await supabase.rpc("convert_sac_to_demi", {
         p_magasin_id: magasinId,
         p_produit_sac_id: sacId,
@@ -201,7 +231,7 @@ function ConversionForm({ sacs, demis, magasinId, onDone }: {
     },
     onSuccess: () => {
       toast.success(`Converti : ${qteNum} sac(s) → ${qteNum * 2} demi-sac(s)`);
-      setSacId(""); setDemiId(""); setQte(""); setNotes("");
+      setSacId(""); setQte(""); setNotes("");
       onDone();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -211,30 +241,38 @@ function ConversionForm({ sacs, demis, magasinId, onDone }: {
     <Card>
       <CardHeader className="pb-3"><CardTitle>Découper un Sac en 2 Demi-sacs</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Produit Sac (source)</Label>
-            <Select value={sacId} onValueChange={setSacId}>
-              <SelectTrigger><SelectValue placeholder="Choisir un sac..." /></SelectTrigger>
-              <SelectContent>
-                {sacs.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.nom} — stock {Number(s.stock_actuel)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Produit Demi-sac (cible)</Label>
-            <Select value={demiId} onValueChange={setDemiId}>
-              <SelectTrigger><SelectValue placeholder="Choisir un demi-sac..." /></SelectTrigger>
-              <SelectContent>
-                {demis.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>{d.nom} — stock {Number(d.stock_actuel)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-1.5">
+          <Label>Produit Sac (source)</Label>
+          <Select value={sacId} onValueChange={setSacId}>
+            <SelectTrigger><SelectValue placeholder="Choisir un sac..." /></SelectTrigger>
+            <SelectContent>
+              {sacs.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.nom} — stock {Number(s.stock_actuel)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+
+        {sac && (
+          <div className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+            <div>
+              Produit demi-sac : <span className="font-medium text-foreground">{demiNom}</span>{" "}
+              {existingDemi ? (
+                <Badge variant="secondary" className="ml-1">existant — stock {Number(existingDemi.stock_actuel)}</Badge>
+              ) : (
+                <Badge className="ml-1">sera créé automatiquement</Badge>
+              )}
+            </div>
+            <div>
+              Prix de vente demi-sac :{" "}
+              <span className="font-medium text-foreground">
+                {existingDemi ? Number(existingDemi.prix_vente_unitaire) : prixDemi}
+              </span>
+              {!existingDemi && <span className="text-muted-foreground"> (prix du sac + 500)</span>}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-1.5">
           <Label>Nombre de sacs à découper</Label>
           <Input type="number" min="1" step="1" value={qte} onChange={(e) => setQte(e.target.value)} />
@@ -250,7 +288,7 @@ function ConversionForm({ sacs, demis, magasinId, onDone }: {
           <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
         <Button
-          disabled={!sacId || !demiId || qteNum <= 0 || !!insuffisant || m.isPending}
+          disabled={!sacId || qteNum <= 0 || !!insuffisant || m.isPending}
           onClick={() => m.mutate()}
         >
           {m.isPending ? "Conversion..." : "Valider la conversion"}
