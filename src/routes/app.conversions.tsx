@@ -31,6 +31,8 @@ interface Produit {
   type_emballage: "sac" | "demi_sac" | "unite";
   stock_actuel: number;
   statut: string;
+  prix_vente_unitaire: number;
+  prix_achat_unitaire: number;
 }
 
 interface Conversion {
