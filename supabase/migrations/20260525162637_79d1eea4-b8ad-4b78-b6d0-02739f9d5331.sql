@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.create_vente(UUID, UUID, public.mode_paiement, NUMERIC, JSONB, TEXT) FROM PUBLIC, anon;
+REVOKE EXECUTE ON FUNCTION public.create_recouvrement(UUID, UUID, NUMERIC, TEXT) FROM PUBLIC, anon;
