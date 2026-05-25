@@ -321,6 +321,137 @@ function Dashboard() {
   );
 }
 
+function AlertesWidget({ produits, magasinId }: { produits: any[]; magasinId: string }) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<any>(null);
+  const [qte, setQte] = useState("1");
+
+  const produitsAlerte = produits
+    .filter((p) => Number(p.stock_actuel) <= Number(p.stock_seuil_alerte))
+    .sort((a, b) => Number(a.stock_actuel) - Number(b.stock_actuel));
+
+  const creerCommande = useMutation({
+    mutationFn: async () => {
+      if (!selected?.fournisseur_id) throw new Error("Aucun fournisseur défini");
+      const { error } = await supabase.from("commandes_fournisseur").insert({
+        fournisseur_id: selected.fournisseur_id,
+        magasin_id: magasinId,
+        produit_id: selected.id,
+        quantite_demandee: Number(qte),
+        statut: "brouillon",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dash-produits", magasinId] });
+      setOpen(false);
+      setSelected(null);
+    },
+  });
+
+  const openCommande = (p: any) => {
+    setSelected(p);
+    const sugg = Math.max(1, Math.ceil(Number(p.stock_seuil_alerte) * 2 - Number(p.stock_actuel)));
+    setQte(String(sugg));
+    setOpen(true);
+  };
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Produit</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="text-right">Stock</TableHead>
+              <TableHead className="text-right">Seuil</TableHead>
+              <TableHead>Fournisseur</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {produitsAlerte.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell className="font-medium">{p.nom}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="capitalize">{p.type_emballage}</Badge>
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-destructive font-medium">
+                  {fmtNum(Number(p.stock_actuel))}
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-muted-foreground">
+                  {fmtNum(Number(p.stock_seuil_alerte))}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {p.fournisseurs?.nom ?? "—"}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!p.fournisseur_id}
+                    onClick={() => openCommande(p)}
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5 mr-1" />
+                    Commander
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouvelle commande fournisseur</DialogTitle>
+            <DialogDescription>
+              Produit : <span className="font-semibold text-foreground">{selected?.nom}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Fournisseur</Label>
+                <p className="text-sm text-muted-foreground mt-1">{selected?.fournisseurs?.nom ?? "—"}</p>
+              </div>
+              <div>
+                <Label>Stock actuel</Label>
+                <p className="text-sm text-destructive font-medium mt-1">{fmtNum(Number(selected?.stock_actuel ?? 0))}</p>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="qte">Quantité à commander</Label>
+              <Input
+                id="qte"
+                type="number"
+                min={1}
+                value={qte}
+                onChange={(e) => setQte(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+            <Button
+              onClick={() => creerCommande.mutate()}
+              disabled={creerCommande.isPending}
+            >
+              {creerCommande.isPending ? "Création…" : "Créer commande"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+
+
 function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <Card>
