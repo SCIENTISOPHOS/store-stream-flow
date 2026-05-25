@@ -17,10 +17,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  HandCoins, Check, ChevronsUpDown, AlertCircle,
+  HandCoins, Check, ChevronsUpDown, AlertCircle, Ban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth-context";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/app/recouvrements")({
   component: RecouvrementsPage,
