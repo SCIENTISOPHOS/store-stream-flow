@@ -56,6 +56,54 @@ export type Database = {
         }
         Relationships: []
       }
+      clients: {
+        Row: {
+          budget_max: number
+          created_at: string
+          created_by: string | null
+          dette_totale: number
+          id: string
+          is_passager_systeme: boolean
+          nom: string
+          notes: string | null
+          statut: Database["public"]["Enums"]["entity_statut"]
+          telephone: string | null
+          type: Database["public"]["Enums"]["client_type"]
+          updated_at: string
+          ville: string | null
+        }
+        Insert: {
+          budget_max?: number
+          created_at?: string
+          created_by?: string | null
+          dette_totale?: number
+          id?: string
+          is_passager_systeme?: boolean
+          nom: string
+          notes?: string | null
+          statut?: Database["public"]["Enums"]["entity_statut"]
+          telephone?: string | null
+          type?: Database["public"]["Enums"]["client_type"]
+          updated_at?: string
+          ville?: string | null
+        }
+        Update: {
+          budget_max?: number
+          created_at?: string
+          created_by?: string | null
+          dette_totale?: number
+          id?: string
+          is_passager_systeme?: boolean
+          nom?: string
+          notes?: string | null
+          statut?: Database["public"]["Enums"]["entity_statut"]
+          telephone?: string | null
+          type?: Database["public"]["Enums"]["client_type"]
+          updated_at?: string
+          ville?: string | null
+        }
+        Relationships: []
+      }
       magasins: {
         Row: {
           actif: boolean
@@ -88,6 +136,75 @@ export type Database = {
           ville?: string | null
         }
         Relationships: []
+      }
+      produits: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          magasin_id: string
+          nom: string
+          notes: string | null
+          prix_achat_unitaire: number
+          prix_vente_unitaire: number
+          produit_parent_id: string | null
+          reference: string | null
+          statut: Database["public"]["Enums"]["entity_statut"]
+          stock_actuel: number
+          stock_seuil_alerte: number
+          type_emballage: Database["public"]["Enums"]["type_emballage"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          magasin_id: string
+          nom: string
+          notes?: string | null
+          prix_achat_unitaire?: number
+          prix_vente_unitaire?: number
+          produit_parent_id?: string | null
+          reference?: string | null
+          statut?: Database["public"]["Enums"]["entity_statut"]
+          stock_actuel?: number
+          stock_seuil_alerte?: number
+          type_emballage?: Database["public"]["Enums"]["type_emballage"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          magasin_id?: string
+          nom?: string
+          notes?: string | null
+          prix_achat_unitaire?: number
+          prix_vente_unitaire?: number
+          produit_parent_id?: string | null
+          reference?: string | null
+          statut?: Database["public"]["Enums"]["entity_statut"]
+          stock_actuel?: number
+          stock_seuil_alerte?: number
+          type_emballage?: Database["public"]["Enums"]["type_emballage"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produits_magasin_id_fkey"
+            columns: ["magasin_id"]
+            isOneToOne: false
+            referencedRelation: "magasins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produits_produit_parent_id_fkey"
+            columns: ["produit_parent_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -180,6 +297,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      client_type: "particulier" | "professionnel" | "passager"
+      entity_statut: "actif" | "bloque" | "archive"
+      type_emballage: "sac" | "demi_sac" | "unite"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -308,6 +428,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      client_type: ["particulier", "professionnel", "passager"],
+      entity_statut: ["actif", "bloque", "archive"],
+      type_emballage: ["sac", "demi_sac", "unite"],
     },
   },
 } as const
