@@ -14,6 +14,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppProduitsRouteImport } from './routes/app.produits'
+import { Route as AppClientsRouteImport } from './routes/app.clients'
 import { Route as AppAdminUtilisateursRouteImport } from './routes/app.admin.utilisateurs'
 import { Route as AppAdminMagasinsRouteImport } from './routes/app.admin.magasins'
 import { Route as AppAdminAuditRouteImport } from './routes/app.admin.audit'
@@ -43,6 +45,16 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProduitsRoute = AppProduitsRouteImport.update({
+  id: '/produits',
+  path: '/produits',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClientsRoute = AppClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminUtilisateursRoute = AppAdminUtilisateursRouteImport.update({
   id: '/admin/utilisateurs',
   path: '/admin/utilisateurs',
@@ -64,6 +76,8 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/select-magasin': typeof SelectMagasinRoute
+  '/app/clients': typeof AppClientsRoute
+  '/app/produits': typeof AppProduitsRoute
   '/app/': typeof AppIndexRoute
   '/app/admin/audit': typeof AppAdminAuditRoute
   '/app/admin/magasins': typeof AppAdminMagasinsRoute
@@ -73,6 +87,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/select-magasin': typeof SelectMagasinRoute
+  '/app/clients': typeof AppClientsRoute
+  '/app/produits': typeof AppProduitsRoute
   '/app': typeof AppIndexRoute
   '/app/admin/audit': typeof AppAdminAuditRoute
   '/app/admin/magasins': typeof AppAdminMagasinsRoute
@@ -84,6 +100,8 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/select-magasin': typeof SelectMagasinRoute
+  '/app/clients': typeof AppClientsRoute
+  '/app/produits': typeof AppProduitsRoute
   '/app/': typeof AppIndexRoute
   '/app/admin/audit': typeof AppAdminAuditRoute
   '/app/admin/magasins': typeof AppAdminMagasinsRoute
@@ -96,6 +114,8 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/select-magasin'
+    | '/app/clients'
+    | '/app/produits'
     | '/app/'
     | '/app/admin/audit'
     | '/app/admin/magasins'
@@ -105,6 +125,8 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/select-magasin'
+    | '/app/clients'
+    | '/app/produits'
     | '/app'
     | '/app/admin/audit'
     | '/app/admin/magasins'
@@ -115,6 +137,8 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/select-magasin'
+    | '/app/clients'
+    | '/app/produits'
     | '/app/'
     | '/app/admin/audit'
     | '/app/admin/magasins'
@@ -165,6 +189,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/produits': {
+      id: '/app/produits'
+      path: '/produits'
+      fullPath: '/app/produits'
+      preLoaderRoute: typeof AppProduitsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/clients': {
+      id: '/app/clients'
+      path: '/clients'
+      fullPath: '/app/clients'
+      preLoaderRoute: typeof AppClientsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/admin/utilisateurs': {
       id: '/app/admin/utilisateurs'
       path: '/admin/utilisateurs'
@@ -190,6 +228,8 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppClientsRoute: typeof AppClientsRoute
+  AppProduitsRoute: typeof AppProduitsRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminAuditRoute: typeof AppAdminAuditRoute
   AppAdminMagasinsRoute: typeof AppAdminMagasinsRoute
@@ -197,6 +237,8 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppClientsRoute: AppClientsRoute,
+  AppProduitsRoute: AppProduitsRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminAuditRoute: AppAdminAuditRoute,
   AppAdminMagasinsRoute: AppAdminMagasinsRoute,
@@ -214,3 +256,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
