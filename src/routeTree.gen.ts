@@ -9,38 +9,148 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SelectMagasinRouteImport } from './routes/select-magasin'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppAdminUtilisateursRouteImport } from './routes/app.admin.utilisateurs'
+import { Route as AppAdminMagasinsRouteImport } from './routes/app.admin.magasins'
+import { Route as AppAdminAuditRouteImport } from './routes/app.admin.audit'
 
+const SelectMagasinRoute = SelectMagasinRouteImport.update({
+  id: '/select-magasin',
+  path: '/select-magasin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminUtilisateursRoute = AppAdminUtilisateursRouteImport.update({
+  id: '/admin/utilisateurs',
+  path: '/admin/utilisateurs',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminMagasinsRoute = AppAdminMagasinsRouteImport.update({
+  id: '/admin/magasins',
+  path: '/admin/magasins',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminAuditRoute = AppAdminAuditRouteImport.update({
+  id: '/admin/audit',
+  path: '/admin/audit',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/select-magasin': typeof SelectMagasinRoute
+  '/app/': typeof AppIndexRoute
+  '/app/admin/audit': typeof AppAdminAuditRoute
+  '/app/admin/magasins': typeof AppAdminMagasinsRoute
+  '/app/admin/utilisateurs': typeof AppAdminUtilisateursRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/select-magasin': typeof SelectMagasinRoute
+  '/app': typeof AppIndexRoute
+  '/app/admin/audit': typeof AppAdminAuditRoute
+  '/app/admin/magasins': typeof AppAdminMagasinsRoute
+  '/app/admin/utilisateurs': typeof AppAdminUtilisateursRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/select-magasin': typeof SelectMagasinRoute
+  '/app/': typeof AppIndexRoute
+  '/app/admin/audit': typeof AppAdminAuditRoute
+  '/app/admin/magasins': typeof AppAdminMagasinsRoute
+  '/app/admin/utilisateurs': typeof AppAdminUtilisateursRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/app'
+    | '/login'
+    | '/select-magasin'
+    | '/app/'
+    | '/app/admin/audit'
+    | '/app/admin/magasins'
+    | '/app/admin/utilisateurs'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/select-magasin'
+    | '/app'
+    | '/app/admin/audit'
+    | '/app/admin/magasins'
+    | '/app/admin/utilisateurs'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/login'
+    | '/select-magasin'
+    | '/app/'
+    | '/app/admin/audit'
+    | '/app/admin/magasins'
+    | '/app/admin/utilisateurs'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  SelectMagasinRoute: typeof SelectMagasinRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/select-magasin': {
+      id: '/select-magasin'
+      path: '/select-magasin'
+      fullPath: '/select-magasin'
+      preLoaderRoute: typeof SelectMagasinRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +158,59 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/utilisateurs': {
+      id: '/app/admin/utilisateurs'
+      path: '/admin/utilisateurs'
+      fullPath: '/app/admin/utilisateurs'
+      preLoaderRoute: typeof AppAdminUtilisateursRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/magasins': {
+      id: '/app/admin/magasins'
+      path: '/admin/magasins'
+      fullPath: '/app/admin/magasins'
+      preLoaderRoute: typeof AppAdminMagasinsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin/audit': {
+      id: '/app/admin/audit'
+      path: '/admin/audit'
+      fullPath: '/app/admin/audit'
+      preLoaderRoute: typeof AppAdminAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppIndexRoute: typeof AppIndexRoute
+  AppAdminAuditRoute: typeof AppAdminAuditRoute
+  AppAdminMagasinsRoute: typeof AppAdminMagasinsRoute
+  AppAdminUtilisateursRoute: typeof AppAdminUtilisateursRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppIndexRoute: AppIndexRoute,
+  AppAdminAuditRoute: AppAdminAuditRoute,
+  AppAdminMagasinsRoute: AppAdminMagasinsRoute,
+  AppAdminUtilisateursRoute: AppAdminUtilisateursRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
+  SelectMagasinRoute: SelectMagasinRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
