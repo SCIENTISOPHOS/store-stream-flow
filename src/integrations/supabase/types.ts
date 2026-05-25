@@ -230,6 +230,108 @@ export type Database = {
         }
         Relationships: []
       }
+      recouvrement_allocations: {
+        Row: {
+          created_at: string
+          id: string
+          montant_alloue: number
+          recouvrement_id: string
+          vente_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          montant_alloue: number
+          recouvrement_id: string
+          vente_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          montant_alloue?: number
+          recouvrement_id?: string
+          vente_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recouvrement_allocations_recouvrement_id_fkey"
+            columns: ["recouvrement_id"]
+            isOneToOne: false
+            referencedRelation: "recouvrements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recouvrement_allocations_vente_id_fkey"
+            columns: ["vente_id"]
+            isOneToOne: false
+            referencedRelation: "ventes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recouvrements: {
+        Row: {
+          annule_le: string | null
+          annule_par: string | null
+          client_id: string
+          created_at: string
+          date_recouvrement: string
+          id: string
+          magasin_id: string
+          montant: number
+          motif_annulation: string | null
+          notes: string | null
+          numero: number
+          statut: Database["public"]["Enums"]["statut_transaction"]
+          vendeur_id: string
+        }
+        Insert: {
+          annule_le?: string | null
+          annule_par?: string | null
+          client_id: string
+          created_at?: string
+          date_recouvrement?: string
+          id?: string
+          magasin_id: string
+          montant: number
+          motif_annulation?: string | null
+          notes?: string | null
+          numero: number
+          statut?: Database["public"]["Enums"]["statut_transaction"]
+          vendeur_id: string
+        }
+        Update: {
+          annule_le?: string | null
+          annule_par?: string | null
+          client_id?: string
+          created_at?: string
+          date_recouvrement?: string
+          id?: string
+          magasin_id?: string
+          montant?: number
+          motif_annulation?: string | null
+          notes?: string | null
+          numero?: number
+          statut?: Database["public"]["Enums"]["statut_transaction"]
+          vendeur_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recouvrements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recouvrements_magasin_id_fkey"
+            columns: ["magasin_id"]
+            isOneToOne: false
+            referencedRelation: "magasins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_magasins: {
         Row: {
           created_at: string
@@ -277,11 +379,151 @@ export type Database = {
         }
         Relationships: []
       }
+      vente_lignes: {
+        Row: {
+          created_at: string
+          id: string
+          montant_ligne: number
+          prix_unitaire: number
+          produit_id: string
+          quantite: number
+          vente_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          montant_ligne: number
+          prix_unitaire: number
+          produit_id: string
+          quantite: number
+          vente_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          montant_ligne?: number
+          prix_unitaire?: number
+          produit_id?: string
+          quantite?: number
+          vente_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vente_lignes_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vente_lignes_vente_id_fkey"
+            columns: ["vente_id"]
+            isOneToOne: false
+            referencedRelation: "ventes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ventes: {
+        Row: {
+          annulee_le: string | null
+          annulee_par: string | null
+          client_id: string
+          created_at: string
+          credit_restant: number
+          date_vente: string
+          id: string
+          magasin_id: string
+          mode_paiement: Database["public"]["Enums"]["mode_paiement"]
+          montant_credit: number
+          montant_paye: number
+          montant_total: number
+          motif_annulation: string | null
+          notes: string | null
+          numero: number
+          statut: Database["public"]["Enums"]["statut_transaction"]
+          vendeur_id: string
+        }
+        Insert: {
+          annulee_le?: string | null
+          annulee_par?: string | null
+          client_id: string
+          created_at?: string
+          credit_restant?: number
+          date_vente?: string
+          id?: string
+          magasin_id: string
+          mode_paiement: Database["public"]["Enums"]["mode_paiement"]
+          montant_credit?: number
+          montant_paye?: number
+          montant_total: number
+          motif_annulation?: string | null
+          notes?: string | null
+          numero: number
+          statut?: Database["public"]["Enums"]["statut_transaction"]
+          vendeur_id: string
+        }
+        Update: {
+          annulee_le?: string | null
+          annulee_par?: string | null
+          client_id?: string
+          created_at?: string
+          credit_restant?: number
+          date_vente?: string
+          id?: string
+          magasin_id?: string
+          mode_paiement?: Database["public"]["Enums"]["mode_paiement"]
+          montant_credit?: number
+          montant_paye?: number
+          montant_total?: number
+          motif_annulation?: string | null
+          notes?: string | null
+          numero?: number
+          statut?: Database["public"]["Enums"]["statut_transaction"]
+          vendeur_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ventes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ventes_magasin_id_fkey"
+            columns: ["magasin_id"]
+            isOneToOne: false
+            referencedRelation: "magasins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      create_recouvrement: {
+        Args: {
+          p_client_id: string
+          p_magasin_id: string
+          p_montant: number
+          p_notes?: string
+        }
+        Returns: string
+      }
+      create_vente: {
+        Args: {
+          p_client_id: string
+          p_lignes: Json
+          p_magasin_id: string
+          p_mode: Database["public"]["Enums"]["mode_paiement"]
+          p_montant_paye: number
+          p_notes?: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -299,6 +541,8 @@ export type Database = {
       app_role: "admin" | "user"
       client_type: "particulier" | "professionnel" | "passager"
       entity_statut: "actif" | "bloque" | "archive"
+      mode_paiement: "comptant" | "credit" | "mixte"
+      statut_transaction: "validee" | "annulee"
       type_emballage: "sac" | "demi_sac" | "unite"
     }
     CompositeTypes: {
@@ -430,6 +674,8 @@ export const Constants = {
       app_role: ["admin", "user"],
       client_type: ["particulier", "professionnel", "passager"],
       entity_statut: ["actif", "bloque", "archive"],
+      mode_paiement: ["comptant", "credit", "mixte"],
+      statut_transaction: ["validee", "annulee"],
       type_emballage: ["sac", "demi_sac", "unite"],
     },
   },
