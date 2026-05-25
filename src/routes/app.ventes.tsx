@@ -1,13 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { useMagasinStore } from "@/lib/magasin-store";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Receipt } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import { Receipt, Ban } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/ventes")({
   component: VentesPage,
@@ -34,7 +43,9 @@ const MODE_LABELS: Record<Vente["mode_paiement"], string> = {
 };
 
 function VentesPage() {
+  const { isAdmin } = useAuth();
   const { magasinId, magasinNom } = useMagasinStore();
+  const qc = useQueryClient();
 
   const { data: ventes, isLoading } = useQuery({
     queryKey: ["ventes", magasinId],
@@ -78,14 +89,15 @@ function VentesPage() {
                 <TableHead className="text-right">Payé</TableHead>
                 <TableHead className="text-right">Crédit restant</TableHead>
                 <TableHead>Statut</TableHead>
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Chargement...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Chargement...</TableCell></TableRow>
               )}
               {!isLoading && (!ventes || ventes.length === 0) && (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-12">Aucune vente enregistrée</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-12">Aucune vente enregistrée</TableCell></TableRow>
               )}
               {ventes?.map((v) => (
                 <TableRow key={v.id} className={v.statut === "annulee" ? "opacity-50" : ""}>
@@ -94,9 +106,7 @@ function VentesPage() {
                     {new Date(v.date_vente).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
                   </TableCell>
                   <TableCell className="font-medium">{v.clients?.nom ?? "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{MODE_LABELS[v.mode_paiement]}</Badge>
-                  </TableCell>
+                  <TableCell><Badge variant="outline">{MODE_LABELS[v.mode_paiement]}</Badge></TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{fmt(v.montant_total)}</TableCell>
                   <TableCell className="text-right tabular-nums">{fmt(v.montant_paye)}</TableCell>
                   <TableCell className={`text-right tabular-nums ${Number(v.credit_restant) > 0 ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}>
@@ -107,6 +117,15 @@ function VentesPage() {
                       {v.statut === "annulee" ? "Annulée" : "Validée"}
                     </Badge>
                   </TableCell>
+                  <TableCell>
+                    {isAdmin && v.statut === "validee" && (
+                      <CancelVenteDialog vente={v} onDone={() => {
+                        qc.invalidateQueries({ queryKey: ["ventes", magasinId] });
+                        qc.invalidateQueries({ queryKey: ["produits"] });
+                        qc.invalidateQueries({ queryKey: ["clients"] });
+                      }} />
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -114,6 +133,51 @@ function VentesPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function CancelVenteDialog({ vente, onDone }: { vente: Vente; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [motif, setMotif] = useState("");
+  const m = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("cancel_vente", { p_vente_id: vente.id, p_motif: motif });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`Vente #${vente.numero} annulée`);
+      setOpen(false); setMotif(""); onDone();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+          <Ban className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Annuler la vente #{vente.numero}</DialogTitle>
+          <DialogDescription>
+            Le stock sera restauré et la dette client recalculée. Action tracée dans le journal d'audit.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label>Motif (obligatoire)</Label>
+          <Textarea rows={3} value={motif} onChange={(e) => setMotif(e.target.value)}
+            placeholder="Raison de l'annulation..." />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Retour</Button>
+          <Button variant="destructive" disabled={motif.trim().length < 3 || m.isPending}
+            onClick={() => m.mutate()}>
+            {m.isPending ? "Annulation..." : "Confirmer l'annulation"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
