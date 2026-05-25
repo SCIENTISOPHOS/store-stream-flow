@@ -31,6 +31,9 @@ interface Produit {
   type_emballage: "sac" | "demi_sac" | "unite";
   stock_actuel: number;
   statut: string;
+  prix_vente_unitaire: number;
+  prix_achat_unitaire: number;
+  produit_parent_id: string | null;
 }
 
 interface Conversion {
@@ -55,7 +58,7 @@ function ConversionsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produits")
-        .select("id, nom, type_emballage, stock_actuel, statut")
+        .select("id, nom, type_emballage, stock_actuel, statut, prix_vente_unitaire, prix_achat_unitaire, produit_parent_id")
         .eq("magasin_id", magasinId!)
         .eq("statut", "actif")
         .order("nom");
