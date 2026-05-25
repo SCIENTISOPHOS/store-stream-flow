@@ -104,6 +104,67 @@ export type Database = {
         }
         Relationships: []
       }
+      commandes_fournisseur: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fournisseur_id: string
+          id: string
+          magasin_id: string
+          notes: string | null
+          produit_id: string
+          quantite_demandee: number
+          statut: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fournisseur_id: string
+          id?: string
+          magasin_id: string
+          notes?: string | null
+          produit_id: string
+          quantite_demandee?: number
+          statut?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fournisseur_id?: string
+          id?: string
+          magasin_id?: string
+          notes?: string | null
+          produit_id?: string
+          quantite_demandee?: number
+          statut?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commandes_fournisseur_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commandes_fournisseur_magasin_id_fkey"
+            columns: ["magasin_id"]
+            isOneToOne: false
+            referencedRelation: "magasins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commandes_fournisseur_produit_id_fkey"
+            columns: ["produit_id"]
+            isOneToOne: false
+            referencedRelation: "produits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversions_emballage: {
         Row: {
           created_at: string
@@ -149,6 +210,39 @@ export type Database = {
         }
         Relationships: []
       }
+      fournisseurs: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nom: string
+          notes: string | null
+          telephone: string | null
+          updated_at: string
+          ville: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom: string
+          notes?: string | null
+          telephone?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nom?: string
+          notes?: string | null
+          telephone?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Relationships: []
+      }
       magasins: {
         Row: {
           actif: boolean
@@ -186,6 +280,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          fournisseur_id: string | null
           id: string
           magasin_id: string
           nom: string
@@ -203,6 +298,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          fournisseur_id?: string | null
           id?: string
           magasin_id: string
           nom: string
@@ -220,6 +316,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          fournisseur_id?: string | null
           id?: string
           magasin_id?: string
           nom?: string
@@ -235,6 +332,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "produits_fournisseur_id_fkey"
+            columns: ["fournisseur_id"]
+            isOneToOne: false
+            referencedRelation: "fournisseurs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "produits_magasin_id_fkey"
             columns: ["magasin_id"]

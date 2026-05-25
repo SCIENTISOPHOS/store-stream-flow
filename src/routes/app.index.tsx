@@ -1,13 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { useMagasinStore } from "@/lib/magasin-store";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Shield, User as UserIcon, Store, Package, Users, Wallet, TrendingUp, AlertTriangle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Shield, User as UserIcon, Store, Package, Users, Wallet, TrendingUp, AlertTriangle, ShoppingCart,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -34,7 +43,7 @@ function Dashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produits")
-        .select("id, nom, type_emballage, stock_actuel, stock_seuil_alerte, prix_vente_unitaire, statut")
+        .select("id, nom, type_emballage, stock_actuel, stock_seuil_alerte, prix_vente_unitaire, statut, fournisseur_id, fournisseurs(nom)")
         .eq("magasin_id", magasinId!)
         .eq("statut", "actif");
       if (error) throw error;
@@ -194,12 +203,26 @@ function Dashboard() {
         <KpiCard icon={<Wallet className="w-4 h-4" />} label="Dette totale" value={fmtFC(detteTotale)} />
       </div>
 
-      {alertes > 0 && (
-        <div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm">
-          <AlertTriangle className="w-4 h-4 text-destructive" />
-          <span>
-            <span className="font-medium text-destructive">{alertes}</span> produit(s) sous le seuil d'alerte de stock.
-          </span>
+      {/* Alertes de stock */}
+      {alertes > 0 ? (
+        <Card className="border-destructive/20">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <CardTitle className="text-base text-destructive">
+                {alertes} produit(s) en alerte de stock
+              </CardTitle>
+            </div>
+            <CardDescription>Stock actuel inférieur ou égal au seuil d&apos;alerte</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertesWidget produits={produits ?? []} magasinId={magasinId!} />
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex items-center gap-2 rounded-md border border-green-600/20 bg-green-600/5 px-3 py-2 text-sm">
+          <Package className="w-4 h-4 text-green-600" />
+          <span className="text-green-700">Aucun produit sous le seuil d&apos;alerte.</span>
         </div>
       )}
 
@@ -297,6 +320,137 @@ function Dashboard() {
     </div>
   );
 }
+
+function AlertesWidget({ produits, magasinId }: { produits: any[]; magasinId: string }) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<any>(null);
+  const [qte, setQte] = useState("1");
+
+  const produitsAlerte = produits
+    .filter((p) => Number(p.stock_actuel) <= Number(p.stock_seuil_alerte))
+    .sort((a, b) => Number(a.stock_actuel) - Number(b.stock_actuel));
+
+  const creerCommande = useMutation({
+    mutationFn: async () => {
+      if (!selected?.fournisseur_id) throw new Error("Aucun fournisseur défini");
+      const { error } = await supabase.from("commandes_fournisseur").insert({
+        fournisseur_id: selected.fournisseur_id,
+        magasin_id: magasinId,
+        produit_id: selected.id,
+        quantite_demandee: Number(qte),
+        statut: "brouillon",
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["dash-produits", magasinId] });
+      setOpen(false);
+      setSelected(null);
+    },
+  });
+
+  const openCommande = (p: any) => {
+    setSelected(p);
+    const sugg = Math.max(1, Math.ceil(Number(p.stock_seuil_alerte) * 2 - Number(p.stock_actuel)));
+    setQte(String(sugg));
+    setOpen(true);
+  };
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Produit</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="text-right">Stock</TableHead>
+              <TableHead className="text-right">Seuil</TableHead>
+              <TableHead>Fournisseur</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {produitsAlerte.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell className="font-medium">{p.nom}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="capitalize">{p.type_emballage}</Badge>
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-destructive font-medium">
+                  {fmtNum(Number(p.stock_actuel))}
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-muted-foreground">
+                  {fmtNum(Number(p.stock_seuil_alerte))}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {p.fournisseurs?.nom ?? "—"}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!p.fournisseur_id}
+                    onClick={() => openCommande(p)}
+                  >
+                    <ShoppingCart className="w-3.5 h-3.5 mr-1" />
+                    Commander
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nouvelle commande fournisseur</DialogTitle>
+            <DialogDescription>
+              Produit : <span className="font-semibold text-foreground">{selected?.nom}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Fournisseur</Label>
+                <p className="text-sm text-muted-foreground mt-1">{selected?.fournisseurs?.nom ?? "—"}</p>
+              </div>
+              <div>
+                <Label>Stock actuel</Label>
+                <p className="text-sm text-destructive font-medium mt-1">{fmtNum(Number(selected?.stock_actuel ?? 0))}</p>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="qte">Quantité à commander</Label>
+              <Input
+                id="qte"
+                type="number"
+                min={1}
+                value={qte}
+                onChange={(e) => setQte(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+            <Button
+              onClick={() => creerCommande.mutate()}
+              disabled={creerCommande.isPending}
+            >
+              {creerCommande.isPending ? "Création…" : "Créer commande"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+
 
 function KpiCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
