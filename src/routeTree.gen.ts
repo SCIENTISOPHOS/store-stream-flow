@@ -14,8 +14,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppVentesRouteImport } from './routes/app.ventes'
+import { Route as AppRecouvrementsRouteImport } from './routes/app.recouvrements'
 import { Route as AppProduitsRouteImport } from './routes/app.produits'
 import { Route as AppClientsRouteImport } from './routes/app.clients'
+import { Route as AppCaisseRouteImport } from './routes/app.caisse'
 import { Route as AppAdminUtilisateursRouteImport } from './routes/app.admin.utilisateurs'
 import { Route as AppAdminMagasinsRouteImport } from './routes/app.admin.magasins'
 import { Route as AppAdminAuditRouteImport } from './routes/app.admin.audit'
@@ -45,6 +48,16 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppVentesRoute = AppVentesRouteImport.update({
+  id: '/ventes',
+  path: '/ventes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRecouvrementsRoute = AppRecouvrementsRouteImport.update({
+  id: '/recouvrements',
+  path: '/recouvrements',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppProduitsRoute = AppProduitsRouteImport.update({
   id: '/produits',
   path: '/produits',
@@ -53,6 +66,11 @@ const AppProduitsRoute = AppProduitsRouteImport.update({
 const AppClientsRoute = AppClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCaisseRoute = AppCaisseRouteImport.update({
+  id: '/caisse',
+  path: '/caisse',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAdminUtilisateursRoute = AppAdminUtilisateursRouteImport.update({
@@ -76,8 +94,11 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/select-magasin': typeof SelectMagasinRoute
+  '/app/caisse': typeof AppCaisseRoute
   '/app/clients': typeof AppClientsRoute
   '/app/produits': typeof AppProduitsRoute
+  '/app/recouvrements': typeof AppRecouvrementsRoute
+  '/app/ventes': typeof AppVentesRoute
   '/app/': typeof AppIndexRoute
   '/app/admin/audit': typeof AppAdminAuditRoute
   '/app/admin/magasins': typeof AppAdminMagasinsRoute
@@ -87,8 +108,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/select-magasin': typeof SelectMagasinRoute
+  '/app/caisse': typeof AppCaisseRoute
   '/app/clients': typeof AppClientsRoute
   '/app/produits': typeof AppProduitsRoute
+  '/app/recouvrements': typeof AppRecouvrementsRoute
+  '/app/ventes': typeof AppVentesRoute
   '/app': typeof AppIndexRoute
   '/app/admin/audit': typeof AppAdminAuditRoute
   '/app/admin/magasins': typeof AppAdminMagasinsRoute
@@ -100,8 +124,11 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/select-magasin': typeof SelectMagasinRoute
+  '/app/caisse': typeof AppCaisseRoute
   '/app/clients': typeof AppClientsRoute
   '/app/produits': typeof AppProduitsRoute
+  '/app/recouvrements': typeof AppRecouvrementsRoute
+  '/app/ventes': typeof AppVentesRoute
   '/app/': typeof AppIndexRoute
   '/app/admin/audit': typeof AppAdminAuditRoute
   '/app/admin/magasins': typeof AppAdminMagasinsRoute
@@ -114,8 +141,11 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/select-magasin'
+    | '/app/caisse'
     | '/app/clients'
     | '/app/produits'
+    | '/app/recouvrements'
+    | '/app/ventes'
     | '/app/'
     | '/app/admin/audit'
     | '/app/admin/magasins'
@@ -125,8 +155,11 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/select-magasin'
+    | '/app/caisse'
     | '/app/clients'
     | '/app/produits'
+    | '/app/recouvrements'
+    | '/app/ventes'
     | '/app'
     | '/app/admin/audit'
     | '/app/admin/magasins'
@@ -137,8 +170,11 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/select-magasin'
+    | '/app/caisse'
     | '/app/clients'
     | '/app/produits'
+    | '/app/recouvrements'
+    | '/app/ventes'
     | '/app/'
     | '/app/admin/audit'
     | '/app/admin/magasins'
@@ -189,6 +225,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/ventes': {
+      id: '/app/ventes'
+      path: '/ventes'
+      fullPath: '/app/ventes'
+      preLoaderRoute: typeof AppVentesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/recouvrements': {
+      id: '/app/recouvrements'
+      path: '/recouvrements'
+      fullPath: '/app/recouvrements'
+      preLoaderRoute: typeof AppRecouvrementsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/produits': {
       id: '/app/produits'
       path: '/produits'
@@ -201,6 +251,13 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/app/clients'
       preLoaderRoute: typeof AppClientsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/caisse': {
+      id: '/app/caisse'
+      path: '/caisse'
+      fullPath: '/app/caisse'
+      preLoaderRoute: typeof AppCaisseRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/admin/utilisateurs': {
@@ -228,8 +285,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCaisseRoute: typeof AppCaisseRoute
   AppClientsRoute: typeof AppClientsRoute
   AppProduitsRoute: typeof AppProduitsRoute
+  AppRecouvrementsRoute: typeof AppRecouvrementsRoute
+  AppVentesRoute: typeof AppVentesRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminAuditRoute: typeof AppAdminAuditRoute
   AppAdminMagasinsRoute: typeof AppAdminMagasinsRoute
@@ -237,8 +297,11 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCaisseRoute: AppCaisseRoute,
   AppClientsRoute: AppClientsRoute,
   AppProduitsRoute: AppProduitsRoute,
+  AppRecouvrementsRoute: AppRecouvrementsRoute,
+  AppVentesRoute: AppVentesRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminAuditRoute: AppAdminAuditRoute,
   AppAdminMagasinsRoute: AppAdminMagasinsRoute,

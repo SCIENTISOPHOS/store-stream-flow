@@ -13,8 +13,12 @@ import {
   FileClock,
   Users,
   Boxes,
+  ShoppingCart,
+  Receipt,
+  HandCoins,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
+
 
 
 export const Route = createFileRoute("/app")({
@@ -43,9 +47,13 @@ function AppLayout() {
 
   const navItems = [
     { to: "/app", label: "Tableau de bord", icon: LayoutDashboard, exact: true },
+    { to: "/app/caisse", label: "Caisse", icon: ShoppingCart },
+    { to: "/app/ventes", label: "Ventes", icon: Receipt },
+    { to: "/app/recouvrements", label: "Recouvrements", icon: HandCoins },
     { to: "/app/clients", label: "Clients", icon: Users },
     { to: "/app/produits", label: "Produits", icon: Boxes },
   ];
+
 
   const adminItems = [
     { to: "/app/admin/magasins", label: "Magasins", icon: Store },
