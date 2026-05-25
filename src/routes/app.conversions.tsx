@@ -183,20 +183,58 @@ function ConversionForm({ sacs, demis, magasinId, onDone }: {
   sacs: Produit[]; demis: Produit[]; magasinId: string; onDone: () => void;
 }) {
   const [sacId, setSacId] = useState("");
-  const [demiId, setDemiId] = useState("");
   const [qte, setQte] = useState("");
   const [notes, setNotes] = useState("");
   const sac = sacs.find((s) => s.id === sacId);
   const qteNum = Number(qte || 0);
   const insuffisant = sac && qteNum > Number(sac.stock_actuel);
 
+  // Cherche un demi-sac existant lié à ce sac (par parent ou par nom "<sac> DEMI")
+  const findExistingDemi = (s: Produit): Produit | undefined => {
+    const expectedNom = `${s.nom} DEMI`.toLowerCase();
+    return demis.find(
+      (d) => d.produit_parent_id === s.id || d.nom.toLowerCase() === expectedNom,
+    );
+  };
+
+  const existingDemi = sac ? findExistingDemi(sac) : undefined;
+  const prixDemiPreview = sac ? Number(sac.prix_vente_unitaire) / 2 + 500 : 0;
+
   const m = useMutation({
     mutationFn: async () => {
-      if (!sacId || !demiId || qteNum <= 0) throw new Error("Champs requis");
+      if (!sacId || qteNum <= 0) throw new Error("Champs requis");
+      if (!sac) throw new Error("Sac introuvable");
+
+      // 1) Trouver ou créer le produit demi-sac
+      let demiId = existingDemi?.id;
+      if (!demiId) {
+        const nomDemi = `${sac.nom} DEMI`;
+        const prixVente = Number(sac.prix_vente_unitaire) / 2 + 500;
+        const prixAchat = Number(sac.prix_achat_unitaire) / 2;
+        const { data: created, error: insErr } = await supabase
+          .from("produits")
+          .insert({
+            magasin_id: magasinId,
+            nom: nomDemi,
+            type_emballage: "demi_sac",
+            prix_vente_unitaire: prixVente,
+            prix_achat_unitaire: prixAchat,
+            stock_actuel: 0,
+            stock_seuil_alerte: 0,
+            produit_parent_id: sac.id,
+            statut: "actif",
+          })
+          .select("id")
+          .single();
+        if (insErr) throw insErr;
+        demiId = created.id;
+      }
+
+      // 2) Conversion via RPC
       const { error } = await supabase.rpc("convert_sac_to_demi", {
         p_magasin_id: magasinId,
         p_produit_sac_id: sacId,
-        p_produit_demi_id: demiId,
+        p_produit_demi_id: demiId!,
         p_quantite_sacs: qteNum,
         p_notes: notes || undefined,
       });
@@ -204,7 +242,7 @@ function ConversionForm({ sacs, demis, magasinId, onDone }: {
     },
     onSuccess: () => {
       toast.success(`Converti : ${qteNum} sac(s) → ${qteNum * 2} demi-sac(s)`);
-      setSacId(""); setDemiId(""); setQte(""); setNotes("");
+      setSacId(""); setQte(""); setNotes("");
       onDone();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -214,30 +252,34 @@ function ConversionForm({ sacs, demis, magasinId, onDone }: {
     <Card>
       <CardHeader className="pb-3"><CardTitle>Découper un Sac en 2 Demi-sacs</CardTitle></CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <Label>Produit Sac (source)</Label>
-            <Select value={sacId} onValueChange={setSacId}>
-              <SelectTrigger><SelectValue placeholder="Choisir un sac..." /></SelectTrigger>
-              <SelectContent>
-                {sacs.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>{s.nom} — stock {Number(s.stock_actuel)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Produit Demi-sac (cible)</Label>
-            <Select value={demiId} onValueChange={setDemiId}>
-              <SelectTrigger><SelectValue placeholder="Choisir un demi-sac..." /></SelectTrigger>
-              <SelectContent>
-                {demis.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>{d.nom} — stock {Number(d.stock_actuel)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-1.5">
+          <Label>Produit Sac (source)</Label>
+          <Select value={sacId} onValueChange={setSacId}>
+            <SelectTrigger><SelectValue placeholder="Choisir un sac..." /></SelectTrigger>
+            <SelectContent>
+              {sacs.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.nom} — stock {Number(s.stock_actuel)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
+        {sac && (
+          <div className="rounded-md bg-muted/50 border p-3 text-xs space-y-1">
+            <div className="font-medium text-foreground">Demi-sac cible</div>
+            {existingDemi ? (
+              <div>
+                Existant : <span className="font-medium text-foreground">{existingDemi.nom}</span>
+                {" "}— stock actuel {Number(existingDemi.stock_actuel)}
+              </div>
+            ) : (
+              <div>
+                Sera créé automatiquement : <span className="font-medium text-foreground">{sac.nom} DEMI</span>
+                {" "}— prix vente <span className="font-medium text-foreground">{prixDemiPreview.toLocaleString("fr-FR")}</span>
+                {" "}(prix sac ÷ 2 + 500)
+              </div>
+            )}
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label>Nombre de sacs à découper</Label>
           <Input type="number" min="1" step="1" value={qte} onChange={(e) => setQte(e.target.value)} />
@@ -253,7 +295,7 @@ function ConversionForm({ sacs, demis, magasinId, onDone }: {
           <Textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
         <Button
-          disabled={!sacId || !demiId || qteNum <= 0 || !!insuffisant || m.isPending}
+          disabled={!sacId || qteNum <= 0 || !!insuffisant || m.isPending}
           onClick={() => m.mutate()}
         >
           {m.isPending ? "Conversion..." : "Valider la conversion"}
@@ -262,6 +304,7 @@ function ConversionForm({ sacs, demis, magasinId, onDone }: {
     </Card>
   );
 }
+
 
 function SacPerceForm({ sacs, demis, magasinId, onDone }: {
   sacs: Produit[]; demis: Produit[]; magasinId: string; onDone: () => void;
