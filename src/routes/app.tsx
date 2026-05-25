@@ -7,13 +7,15 @@ import {
   Package,
   Store,
   LayoutDashboard,
-  Settings,
   LogOut,
   Repeat,
   Shield,
   FileClock,
+  Users,
+  Boxes,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
+
 
 export const Route = createFileRoute("/app")({
   component: AppLayout,
@@ -41,7 +43,10 @@ function AppLayout() {
 
   const navItems = [
     { to: "/app", label: "Tableau de bord", icon: LayoutDashboard, exact: true },
+    { to: "/app/clients", label: "Clients", icon: Users },
+    { to: "/app/produits", label: "Produits", icon: Boxes },
   ];
+
   const adminItems = [
     { to: "/app/admin/magasins", label: "Magasins", icon: Store },
     { to: "/app/admin/utilisateurs", label: "Utilisateurs", icon: Shield },
