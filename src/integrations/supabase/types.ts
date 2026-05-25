@@ -290,7 +290,6 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
-      seed_passager: { Args: never; Returns: undefined }
       user_can_access_magasin: {
         Args: { _magasin_id: string; _user_id: string }
         Returns: boolean
