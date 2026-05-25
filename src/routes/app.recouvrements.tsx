@@ -52,9 +52,12 @@ interface Recouvrement {
 }
 
 function RecouvrementsPage() {
+  const { isAdmin } = useAuth();
   const { magasinId, magasinNom } = useMagasinStore();
   const qc = useQueryClient();
   const [clientId, setClientId] = useState("");
+  const [montant, setMontant] = useState("");
+  const [notes, setNotes] = useState("");
   const [montant, setMontant] = useState("");
   const [notes, setNotes] = useState("");
 
