@@ -258,6 +258,7 @@ function RecouvrementsPage() {
                       <TableHead>Magasin</TableHead>
                       <TableHead className="text-right">Montant</TableHead>
                       <TableHead>Statut</TableHead>
+                      <TableHead className="w-[60px]"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -272,6 +273,15 @@ function RecouvrementsPage() {
                           <Badge variant={r.statut === "annulee" ? "destructive" : "default"}>
                             {r.statut === "annulee" ? "Annulé" : "Validé"}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {isAdmin && r.statut !== "annulee" && (
+                            <CancelRecouvrementDialog rec={r} onDone={() => {
+                              qc.invalidateQueries({ queryKey: ["recouvrements-recents", magasinId] });
+                              qc.invalidateQueries({ queryKey: ["clients"] });
+                              qc.invalidateQueries({ queryKey: ["clients-recouvrement"] });
+                            }} />
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
