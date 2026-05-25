@@ -53,7 +53,10 @@ function AppLayout() {
     { to: "/app/recouvrements", label: "Recouvrements", icon: HandCoins },
     { to: "/app/clients", label: "Clients", icon: Users },
     { to: "/app/produits", label: "Produits", icon: Boxes },
+    { to: "/app/conversions", label: "Conversions", icon: Repeat },
+    { to: "/app/rebuts", label: "Rebuts", icon: Trash2 },
   ];
+
 
 
   const adminItems = [
