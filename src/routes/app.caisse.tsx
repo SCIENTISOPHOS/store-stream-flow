@@ -168,7 +168,7 @@ function CaissePage() {
           quantite: l.quantite,
           prix_unitaire: l.prix_unitaire,
         })),
-        p_notes: notes || null,
+        p_notes: notes || undefined,
       });
       if (error) throw error;
       return data;

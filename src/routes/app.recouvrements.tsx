@@ -95,7 +95,7 @@ function RecouvrementsPage() {
         p_magasin_id: magasinId!,
         p_client_id: clientId,
         p_montant: montantNum,
-        p_notes: notes || null,
+        p_notes: notes || undefined,
       });
       if (error) throw error;
       return data;
