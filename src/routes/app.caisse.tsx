@@ -147,7 +147,7 @@ function CaissePage() {
   const removeLigne = (id: string) => setLignes((prev) => prev.filter((l) => l.produit_id !== id));
 
   const reset = () => {
-    setLignes([]); setMode("comptant"); setMontantPaye(""); setRecu(""); setNotes("");
+    setLignes([]); setMode("comptant"); setMontantPaye(""); setRemise(""); setNotes("");
     const p = clients?.find((c) => c.is_passager_systeme);
     setClientId(p?.id ?? "");
   };
@@ -172,6 +172,7 @@ function CaissePage() {
           prix_unitaire: l.prix_unitaire,
         })),
         p_notes: notes || undefined,
+        p_remise: remiseNum || 0,
       });
       if (error) throw error;
       return data;
@@ -191,7 +192,7 @@ function CaissePage() {
   // Validations live
   const canValidate = useMemo(() => {
     if (!clientId || lignes.length === 0) return false;
-    if (mode === "comptant") return Number(recu || 0) >= total;
+    if (mode === "comptant") return total >= 0;
     if (mode === "credit") {
       if (!client || client.is_passager_systeme) return false;
       return client.dette_totale + total <= client.budget_max;
@@ -201,7 +202,7 @@ function CaissePage() {
     if (p <= 0 || p >= total) return false;
     if (!client || client.is_passager_systeme) return false;
     return client.dette_totale + (total - p) <= client.budget_max;
-  }, [clientId, lignes, mode, montantPaye, recu, total, client]);
+  }, [clientId, lignes, mode, montantPaye, total, client]);
 
   return (
     <div className="p-8 max-w-7xl">
