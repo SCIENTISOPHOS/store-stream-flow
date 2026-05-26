@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Plus, Minus, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, AlertCircle,
+  Plus, Minus, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, AlertCircle, Percent,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
