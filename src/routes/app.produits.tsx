@@ -398,7 +398,16 @@ function ProduitDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="ref">Référence</Label>
-            <Input id="ref" value={reference} onChange={(e) => setReference(e.target.value)} />
+            <Input
+              id="ref"
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              placeholder={editing ? "" : "Auto (PRD-00001)"}
+              disabled={!!editing}
+            />
+            {!editing && (
+              <p className="text-xs text-muted-foreground">Laisser vide pour génération automatique.</p>
+            )}
           </div>
         </div>
 
