@@ -225,6 +225,7 @@ function ClientsPage() {
             <TableRow>
               <TableHead>Nom</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Magasin</TableHead>
               <TableHead>Téléphone</TableHead>
               <TableHead>Ville</TableHead>
               <TableHead className="text-right">Budget max</TableHead>
@@ -235,11 +236,11 @@ function ClientsPage() {
           </TableHeader>
           <TableBody>
             {isLoading && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Chargement...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Chargement...</TableCell></TableRow>
             )}
             {!isLoading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={9} className="text-center py-12">
                   <Users className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">Aucun client trouvé</p>
                 </TableCell>
@@ -259,6 +260,20 @@ function ClientsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">{c.type}</Badge>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {c.is_passager_systeme ? (
+                      <span className="text-muted-foreground">— partagé —</span>
+                    ) : c.magasin_id ? (
+                      <div className="flex items-center gap-1.5">
+                        <span>{magasinNomById.get(c.magasin_id) ?? "?"}</span>
+                        {c.allow_cross_magasin && (
+                          <Globe className="w-3 h-3 text-primary" aria-label="Inter-magasins autorisé" />
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">non rattaché</span>
+                    )}
                   </TableCell>
                   <TableCell>{c.telephone || "—"}</TableCell>
                   <TableCell>{c.ville || "—"}</TableCell>
