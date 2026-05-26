@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, Link, useLocation } from "@tansta
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useMagasinStore } from "@/lib/magasin-store";
-import { Button } from "@/components/ui/button";
+import { ThemeSettings } from "@/components/theme-settings";
 import {
   Package,
   Store,
@@ -38,7 +38,11 @@ function AppLayout() {
     if (loading) return;
     if (!user) { navigate({ to: "/login" }); return; }
     if (!canAccessCurrentRoute) { navigate({ to: "/select-magasin" }); return; }
-  }, [user, loading, canAccessCurrentRoute, navigate]);
+    // Non-admin users don't have access to the dashboard
+    if (!isAdmin && location.pathname === "/app") {
+      navigate({ to: "/app/caisse" });
+    }
+  }, [user, loading, canAccessCurrentRoute, navigate, isAdmin, location.pathname]);
 
   if (loading || !user || !canAccessCurrentRoute) {
     return (
@@ -49,7 +53,7 @@ function AppLayout() {
   }
 
   const navItems = [
-    { to: "/app", label: "Tableau de bord", icon: LayoutDashboard, exact: true },
+    ...(isAdmin ? [{ to: "/app", label: "Tableau de bord", icon: LayoutDashboard, exact: true }] : []),
     { to: "/app/caisse", label: "Caisse", icon: ShoppingCart },
     { to: "/app/ventes", label: "Ventes", icon: Receipt },
     { to: "/app/recouvrements", label: "Recouvrements", icon: HandCoins },
@@ -113,7 +117,8 @@ function AppLayout() {
           )}
         </nav>
 
-        <div className="p-3 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
+        <div className="p-3 border-t space-y-1" style={{ borderColor: "var(--sidebar-border)" }}>
+          <ThemeSettings />
           <div className="px-3 py-2 text-xs opacity-70 truncate">{user.email}</div>
           <button
             onClick={() => { signOut(); navigate({ to: "/login" }); }}
