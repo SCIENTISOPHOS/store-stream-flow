@@ -1,14 +1,29 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import {
+  adminCreateUser,
+  adminUpdateUser,
+  adminDeleteUser,
+} from "@/lib/admin-users.functions";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, User as UserIcon } from "lucide-react";
+import { Shield, User as UserIcon, Plus, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/admin/utilisateurs")({
@@ -69,7 +84,6 @@ function UtilisateursPage() {
 
   const setRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: "admin" | "user" }) => {
-      // remove existing roles, set new one (single primary role)
       await supabase.from("user_roles").delete().eq("user_id", userId);
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role });
       if (error) throw error;
@@ -96,13 +110,57 @@ function UtilisateursPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const createFn = useServerFn(adminCreateUser);
+  const updateFn = useServerFn(adminUpdateUser);
+  const deleteFn = useServerFn(adminDeleteUser);
+
+  const createUser = useMutation({
+    mutationFn: (input: { email: string; password: string; display_name: string; phone: string; role: "admin" | "user" }) =>
+      createFn({ data: { ...input, phone: input.phone || null } }),
+    onSuccess: () => {
+      toast.success("Utilisateur créé");
+      qc.invalidateQueries({ queryKey: ["all-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const updateUser = useMutation({
+    mutationFn: (input: { user_id: string; display_name: string; phone: string; email?: string; password?: string }) =>
+      updateFn({
+        data: {
+          user_id: input.user_id,
+          display_name: input.display_name,
+          phone: input.phone || null,
+          ...(input.email ? { email: input.email } : {}),
+          ...(input.password ? { password: input.password } : {}),
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Utilisateur mis à jour");
+      qc.invalidateQueries({ queryKey: ["all-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: (user_id: string) => deleteFn({ data: { user_id } }),
+    onSuccess: () => {
+      toast.success("Utilisateur supprimé");
+      qc.invalidateQueries({ queryKey: ["all-users"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="p-8 max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tight">Utilisateurs</h1>
-        <p className="text-muted-foreground mt-1">
-          Attribution des rôles et rattachement aux magasins (RG-ROL-07)
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Utilisateurs</h1>
+          <p className="text-muted-foreground mt-1">
+            Création, édition, suppression et rattachement aux magasins (RG-ROL-07)
+          </p>
+        </div>
+        <CreateUserDialog onSubmit={(v) => createUser.mutate(v)} pending={createUser.isPending} />
       </div>
 
       <div className="space-y-4">
@@ -123,7 +181,7 @@ function UtilisateursPage() {
                       Inscrit le {new Date(u.created_at).toLocaleDateString("fr-FR")}
                     </CardDescription>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <Shield className="w-4 h-4 text-muted-foreground" />
                     <Select
                       value={primaryRole}
@@ -136,6 +194,32 @@ function UtilisateursPage() {
                         <SelectItem value="user">Utilisateur</SelectItem>
                       </SelectContent>
                     </Select>
+                    <EditUserDialog
+                      user={u}
+                      onSubmit={(v) => updateUser.mutate({ user_id: u.id, ...v })}
+                      pending={updateUser.isPending}
+                    />
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon" disabled={isSelf} title="Supprimer">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer {u.display_name} ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Cette action est définitive. Toutes les données liées à ce compte resteront, mais l'utilisateur ne pourra plus se connecter.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteUser.mutate(u.id)}>
+                            Supprimer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardHeader>
@@ -168,5 +252,156 @@ function UtilisateursPage() {
         })}
       </div>
     </div>
+  );
+}
+
+function CreateUserDialog({
+  onSubmit, pending,
+}: {
+  onSubmit: (v: { email: string; password: string; display_name: string; phone: string; role: "admin" | "user" }) => void;
+  pending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [role, setRole] = useState<"admin" | "user">("user");
+
+  const submit = () => {
+    if (!email || !password || !displayName) {
+      toast.error("Email, mot de passe et nom sont requis");
+      return;
+    }
+    if (password.length < 8) {
+      toast.error("Mot de passe : 8 caractères minimum");
+      return;
+    }
+    onSubmit({ email, password, display_name: displayName, phone, role });
+    setOpen(false);
+    setEmail(""); setPassword(""); setDisplayName(""); setPhone(""); setRole("user");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button><Plus className="w-4 h-4 mr-2" />Nouvel utilisateur</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Créer un utilisateur</DialogTitle>
+          <DialogDescription>Le compte est activé immédiatement (email confirmé).</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Nom affiché *</Label>
+            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={100} />
+          </div>
+          <div>
+            <Label>Email *</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} />
+          </div>
+          <div>
+            <Label>Mot de passe * (min. 8)</Label>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
+          </div>
+          <div>
+            <Label>Téléphone</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} />
+          </div>
+          <div>
+            <Label>Rôle</Label>
+            <Select value={role} onValueChange={(v) => setRole(v as "admin" | "user")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">Utilisateur</SelectItem>
+                <SelectItem value="admin">Administrateur</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button onClick={submit} disabled={pending}>Créer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditUserDialog({
+  user, onSubmit, pending,
+}: {
+  user: UserRow;
+  onSubmit: (v: { display_name: string; phone: string; email?: string; password?: string }) => void;
+  pending: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [displayName, setDisplayName] = useState(user.display_name);
+  const [phone, setPhone] = useState(user.phone ?? "");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setDisplayName(user.display_name);
+      setPhone(user.phone ?? "");
+      setEmail("");
+      setPassword("");
+    }
+  }, [open, user]);
+
+  const submit = () => {
+    if (!displayName.trim()) {
+      toast.error("Nom requis");
+      return;
+    }
+    if (password && password.length < 8) {
+      toast.error("Mot de passe : 8 caractères minimum");
+      return;
+    }
+    onSubmit({
+      display_name: displayName,
+      phone,
+      ...(email ? { email } : {}),
+      ...(password ? { password } : {}),
+    });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="icon" title="Modifier"><Pencil className="w-4 h-4" /></Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Modifier {user.display_name}</DialogTitle>
+          <DialogDescription>Laissez vides les champs email / mot de passe pour ne pas les changer.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Nom affiché</Label>
+            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} maxLength={100} />
+          </div>
+          <div>
+            <Label>Téléphone</Label>
+            <Input value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={30} />
+          </div>
+          <div>
+            <Label>Nouvel email (optionnel)</Label>
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={255} />
+          </div>
+          <div>
+            <Label>Nouveau mot de passe (optionnel)</Label>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={128} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button onClick={submit} disabled={pending}>Enregistrer</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
