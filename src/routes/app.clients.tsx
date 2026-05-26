@@ -125,7 +125,7 @@ function ClientsPage() {
           patch.magasin_id = c.magasin_id ?? null;
           patch.allow_cross_magasin = c.allow_cross_magasin ?? false;
         }
-        const { error } = await supabase.from("clients").update(patch).eq("id", c.id);
+        const { error } = await supabase.from("clients").update(patch as never).eq("id", c.id);
         if (error) throw error;
       } else {
         const { data: u } = await supabase.auth.getUser();
@@ -141,7 +141,7 @@ function ClientsPage() {
           magasin_id: isAdmin ? (c.magasin_id ?? null) : magasinId,
           allow_cross_magasin: isAdmin ? (c.allow_cross_magasin ?? false) : false,
         };
-        const { error } = await supabase.from("clients").insert(insert);
+        const { error } = await supabase.from("clients").insert(insert as never);
         if (error) throw error;
       }
     },
