@@ -58,12 +58,14 @@ export type Database = {
       }
       clients: {
         Row: {
+          allow_cross_magasin: boolean
           budget_max: number
           created_at: string
           created_by: string | null
           dette_totale: number
           id: string
           is_passager_systeme: boolean
+          magasin_id: string | null
           nom: string
           notes: string | null
           statut: Database["public"]["Enums"]["entity_statut"]
@@ -73,12 +75,14 @@ export type Database = {
           ville: string | null
         }
         Insert: {
+          allow_cross_magasin?: boolean
           budget_max?: number
           created_at?: string
           created_by?: string | null
           dette_totale?: number
           id?: string
           is_passager_systeme?: boolean
+          magasin_id?: string | null
           nom: string
           notes?: string | null
           statut?: Database["public"]["Enums"]["entity_statut"]
@@ -88,12 +92,14 @@ export type Database = {
           ville?: string | null
         }
         Update: {
+          allow_cross_magasin?: boolean
           budget_max?: number
           created_at?: string
           created_by?: string | null
           dette_totale?: number
           id?: string
           is_passager_systeme?: boolean
+          magasin_id?: string | null
           nom?: string
           notes?: string | null
           statut?: Database["public"]["Enums"]["entity_statut"]
@@ -102,7 +108,15 @@ export type Database = {
           updated_at?: string
           ville?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_magasin_id_fkey"
+            columns: ["magasin_id"]
+            isOneToOne: false
+            referencedRelation: "magasins"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       commandes_fournisseur: {
         Row: {
