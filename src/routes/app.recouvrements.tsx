@@ -102,13 +102,14 @@ function RecouvrementsPage() {
         p_client_id: clientId,
         p_montant: montantNum,
         p_notes: notes || undefined,
+        p_type: type,
       });
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
-      toast.success("Recouvrement enregistré");
-      setClientId(""); setMontant(""); setNotes("");
+      toast.success(type === "reduction" ? "Réduction de dette enregistrée" : "Recouvrement enregistré");
+      setClientId(""); setMontant(""); setNotes(""); setType("paiement");
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["clients-recouvrement"] });
       qc.invalidateQueries({ queryKey: ["recouvrements-recents", magasinId] });
