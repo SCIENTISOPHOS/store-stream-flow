@@ -329,16 +329,37 @@ function CaissePage() {
 
             <Separator />
 
+            {/* Remise (admin uniquement) */}
+            {isAdmin && (
+              <div className="space-y-1.5">
+                <Label htmlFor="remise" className="flex items-center gap-1.5">
+                  <Percent className="w-3.5 h-3.5" /> Réduction (FCFA)
+                </Label>
+                <Input
+                  id="remise" type="number" min="0" max={sousTotal} step="100"
+                  value={remise}
+                  onChange={(e) => setRemise(e.target.value)}
+                  placeholder="0"
+                />
+                {remiseNum > 0 && (
+                  <div className="flex items-center justify-between text-xs pt-0.5">
+                    <span className="text-muted-foreground">Sous-total</span>
+                    <span className="tabular-nums line-through text-muted-foreground">{fmt(sousTotal)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Total */}
             <div className="flex items-center justify-between text-lg">
-              <span className="text-muted-foreground">Total</span>
+              <span className="text-muted-foreground">Total à payer</span>
               <span className="font-bold tabular-nums">{fmt(total)}</span>
             </div>
 
             {/* Mode paiement */}
             <div className="space-y-1.5">
               <Label>Mode de paiement</Label>
-              <Select value={mode} onValueChange={(v) => { setMode(v as ModePaiement); setMontantPaye(""); setRecu(""); }}>
+              <Select value={mode} onValueChange={(v) => { setMode(v as ModePaiement); setMontantPaye(""); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="comptant">Comptant</SelectItem>
@@ -352,22 +373,9 @@ function CaissePage() {
               </Select>
             </div>
 
-            {/* Comptant : calculateur de monnaie */}
-            {mode === "comptant" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="recu">Reçu du client</Label>
-                <Input
-                  id="recu" type="number" min="0" step="100"
-                  value={recu}
-                  onChange={(e) => setRecu(e.target.value)}
-                  placeholder={total.toString()}
-                />
-                <div className="flex items-center justify-between text-sm pt-1">
-                  <span className="text-muted-foreground">Monnaie à rendre</span>
-                  <span className={cn("font-semibold tabular-nums", monnaie > 0 && "text-emerald-600 dark:text-emerald-400")}>
-                    {fmt(monnaie)}
-                  </span>
-                </div>
+            {mode === "comptant" && total > 0 && (
+              <div className="rounded-md border bg-emerald-50 dark:bg-emerald-950/20 p-3 text-sm text-emerald-900 dark:text-emerald-200">
+                Le client doit régler <strong className="tabular-nums">{fmt(total)}</strong> intégralement.
               </div>
             )}
 
