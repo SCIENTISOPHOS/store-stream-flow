@@ -163,8 +163,21 @@ function RecouvrementsPage() {
               )}
             </div>
 
+            {isAdmin && (
+              <div className="space-y-1.5">
+                <Label>Type d'opération</Label>
+                <Select value={type} onValueChange={(v) => setType(v as "paiement" | "reduction")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="paiement">Encaissement (client paye)</SelectItem>
+                    <SelectItem value="reduction">Réduction de dette (sans paiement)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-1.5">
-              <Label htmlFor="m">Montant encaissé (FCFA)</Label>
+              <Label htmlFor="m">{type === "reduction" ? "Montant à déduire (FCFA)" : "Montant encaissé (FCFA)"}</Label>
               <Input
                 id="m" type="number" min="0" step="100"
                 value={montant}
@@ -184,13 +197,19 @@ function RecouvrementsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="notes">Notes (optionnel)</Label>
+              <Label htmlFor="notes">Notes {type === "reduction" ? "(motif recommandé)" : "(optionnel)"}</Label>
               <Textarea id="notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
 
-            <div className="rounded-md bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 p-3 text-xs text-blue-900 dark:text-blue-200">
-              Le montant sera imputé en priorité aux ventes à crédit <strong>les plus anciennes</strong>,
-              quel que soit le magasin où elles ont été faites.
+            <div className={cn(
+              "rounded-md border p-3 text-xs",
+              type === "reduction"
+                ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 text-amber-900 dark:text-amber-200"
+                : "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-900 dark:text-blue-200"
+            )}>
+              {type === "reduction"
+                ? "Réduction de dette : la dette du client diminue sans encaissement. Action administrateur tracée dans l'audit."
+                : "Le montant sera imputé en priorité aux ventes à crédit les plus anciennes."}
             </div>
 
             <Button
@@ -198,7 +217,7 @@ function RecouvrementsPage() {
               onClick={() => valider.mutate()}
               disabled={!clientId || montantNum <= 0 || !!tropEleve || valider.isPending}
             >
-              {valider.isPending ? "Enregistrement..." : "Enregistrer le recouvrement"}
+              {valider.isPending ? "Enregistrement..." : type === "reduction" ? "Appliquer la réduction" : "Enregistrer le recouvrement"}
             </Button>
           </CardContent>
         </Card>
