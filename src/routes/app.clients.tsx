@@ -3,12 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useMagasinStore } from "@/lib/magasin-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -22,7 +24,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Users, Search, ShieldAlert, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, ShieldAlert, Lock, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/clients")({
@@ -31,6 +33,8 @@ export const Route = createFileRoute("/app/clients")({
 
 type ClientType = "particulier" | "professionnel" | "passager";
 type EntityStatut = "actif" | "bloque" | "archive";
+
+interface Magasin { id: string; nom: string }
 
 interface Client {
   id: string;
@@ -43,6 +47,8 @@ interface Client {
   dette_totale: number;
   notes: string | null;
   is_passager_systeme: boolean;
+  magasin_id: string | null;
+  allow_cross_magasin: boolean;
   created_at: string;
 }
 
@@ -54,11 +60,27 @@ const STATUT_LABELS: Record<EntityStatut, { label: string; variant: "default" | 
 
 function ClientsPage() {
   const { isAdmin } = useAuth();
+  const { magasinId } = useMagasinStore();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Client | null>(null);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatut, setFilterStatut] = useState<"tous" | EntityStatut>("tous");
+
+  const { data: magasins } = useQuery({
+    queryKey: ["magasins-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("magasins").select("id, nom").order("nom");
+      if (error) throw error;
+      return data as Magasin[];
+    },
+  });
+
+  const magasinNomById = useMemo(() => {
+    const m = new Map<string, string>();
+    (magasins ?? []).forEach((mg) => m.set(mg.id, mg.nom));
+    return m;
+  }, [magasins]);
 
   const { data: clients, isLoading } = useQuery({
     queryKey: ["clients"],
@@ -90,7 +112,7 @@ function ClientsPage() {
   const upsert = useMutation({
     mutationFn: async (c: Partial<Client> & { nom: string }) => {
       if (c.id) {
-        const { error } = await supabase.from("clients").update({
+        const patch: Record<string, unknown> = {
           nom: c.nom,
           telephone: c.telephone,
           ville: c.ville,
@@ -98,11 +120,16 @@ function ClientsPage() {
           statut: c.statut,
           budget_max: c.budget_max,
           notes: c.notes,
-        }).eq("id", c.id);
+        };
+        if (isAdmin) {
+          patch.magasin_id = c.magasin_id ?? null;
+          patch.allow_cross_magasin = c.allow_cross_magasin ?? false;
+        }
+        const { error } = await supabase.from("clients").update(patch as never).eq("id", c.id);
         if (error) throw error;
       } else {
         const { data: u } = await supabase.auth.getUser();
-        const { error } = await supabase.from("clients").insert({
+        const insert: Record<string, unknown> = {
           nom: c.nom,
           telephone: c.telephone,
           ville: c.ville,
@@ -111,7 +138,10 @@ function ClientsPage() {
           budget_max: c.budget_max ?? 0,
           notes: c.notes,
           created_by: u.user?.id,
-        });
+          magasin_id: isAdmin ? (c.magasin_id ?? null) : magasinId,
+          allow_cross_magasin: isAdmin ? (c.allow_cross_magasin ?? false) : false,
+        };
+        const { error } = await supabase.from("clients").insert(insert as never);
         if (error) throw error;
       }
     },
@@ -146,7 +176,7 @@ function ClientsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
           <p className="text-muted-foreground mt-1">
-            Fichier centralisé, partagé entre tous les magasins
+            Fichier rattaché par magasin · partage inter-magasin réservé à l'administrateur
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -155,6 +185,9 @@ function ClientsPage() {
           </DialogTrigger>
           <ClientDialog
             editing={editing}
+            isAdmin={isAdmin}
+            currentMagasinId={magasinId}
+            magasins={magasins ?? []}
             onSubmit={(data) => upsert.mutate(data)}
             submitting={upsert.isPending}
           />
@@ -195,6 +228,7 @@ function ClientsPage() {
             <TableRow>
               <TableHead>Nom</TableHead>
               <TableHead>Type</TableHead>
+              <TableHead>Magasin</TableHead>
               <TableHead>Téléphone</TableHead>
               <TableHead>Ville</TableHead>
               <TableHead className="text-right">Budget max</TableHead>
@@ -205,11 +239,11 @@ function ClientsPage() {
           </TableHeader>
           <TableBody>
             {isLoading && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Chargement...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Chargement...</TableCell></TableRow>
             )}
             {!isLoading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-12">
+                <TableCell colSpan={9} className="text-center py-12">
                   <Users className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">Aucun client trouvé</p>
                 </TableCell>
@@ -229,6 +263,20 @@ function ClientsPage() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">{c.type}</Badge>
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {c.is_passager_systeme ? (
+                      <span className="text-muted-foreground">— partagé —</span>
+                    ) : c.magasin_id ? (
+                      <div className="flex items-center gap-1.5">
+                        <span>{magasinNomById.get(c.magasin_id) ?? "?"}</span>
+                        {c.allow_cross_magasin && (
+                          <Globe className="w-3 h-3 text-primary" aria-label="Inter-magasins autorisé" />
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">non rattaché</span>
+                    )}
                   </TableCell>
                   <TableCell>{c.telephone || "—"}</TableCell>
                   <TableCell>{c.ville || "—"}</TableCell>
@@ -296,13 +344,15 @@ function fmt(n: number) {
 }
 
 function ClientDialog({
-  editing, onSubmit, submitting,
+  editing, isAdmin, currentMagasinId, magasins, onSubmit, submitting,
 }: {
   editing: Client | null;
+  isAdmin: boolean;
+  currentMagasinId: string | null;
+  magasins: Magasin[];
   onSubmit: (c: Partial<Client> & { nom: string }) => void;
   submitting: boolean;
 }) {
-  // RG-STU-06 : formulaire pré-rempli
   const [nom, setNom] = useState(editing?.nom ?? "");
   const [telephone, setTelephone] = useState(editing?.telephone ?? "");
   const [ville, setVille] = useState(editing?.ville ?? "");
@@ -310,6 +360,8 @@ function ClientDialog({
   const [statut, setStatut] = useState<EntityStatut>(editing?.statut ?? "actif");
   const [budgetMax, setBudgetMax] = useState<string>(editing?.budget_max?.toString() ?? "0");
   const [notes, setNotes] = useState(editing?.notes ?? "");
+  const [magasinId, setMagasinId] = useState<string>(editing?.magasin_id ?? currentMagasinId ?? "");
+  const [allowCross, setAllowCross] = useState<boolean>(editing?.allow_cross_magasin ?? false);
 
   useEffect(() => {
     setNom(editing?.nom ?? "");
@@ -319,7 +371,9 @@ function ClientDialog({
     setStatut(editing?.statut ?? "actif");
     setBudgetMax(editing?.budget_max?.toString() ?? "0");
     setNotes(editing?.notes ?? "");
-  }, [editing]);
+    setMagasinId(editing?.magasin_id ?? currentMagasinId ?? "");
+    setAllowCross(editing?.allow_cross_magasin ?? false);
+  }, [editing, currentMagasinId]);
 
   const handle = (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,6 +386,8 @@ function ClientDialog({
       statut,
       budget_max: Number(budgetMax) || 0,
       notes: notes || null,
+      magasin_id: magasinId || null,
+      allow_cross_magasin: allowCross,
     });
   };
 
@@ -340,7 +396,7 @@ function ClientDialog({
       <DialogHeader>
         <DialogTitle>{editing ? "Modifier le client" : "Nouveau client"}</DialogTitle>
         <DialogDescription>
-          Les clients sont partagés entre tous les magasins du réseau.
+          Chaque client est rattaché à un magasin. L'administrateur peut autoriser les achats inter-magasins.
         </DialogDescription>
       </DialogHeader>
       <form onSubmit={handle} className="space-y-4">
@@ -372,6 +428,35 @@ function ClientDialog({
             </Select>
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="magasin">Magasin de rattachement</Label>
+          <Select value={magasinId} onValueChange={setMagasinId} disabled={!isAdmin}>
+            <SelectTrigger id="magasin"><SelectValue placeholder="Choisir un magasin" /></SelectTrigger>
+            <SelectContent>
+              {magasins.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!isAdmin && (
+            <p className="text-xs text-muted-foreground">
+              Le client sera rattaché à votre magasin de session. Seul un administrateur peut le déplacer.
+            </p>
+          )}
+        </div>
+
+        {isAdmin && (
+          <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="cross">Autoriser les achats inter-magasins</Label>
+              <p className="text-xs text-muted-foreground">
+                Si activé, ce client peut acheter dans n'importe quel magasin du réseau.
+              </p>
+            </div>
+            <Switch id="cross" checked={allowCross} onCheckedChange={setAllowCross} />
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
