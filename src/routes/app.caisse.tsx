@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Plus, Minus, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, AlertCircle,
+  Plus, Minus, Trash2, ShoppingCart, Check, ChevronsUpDown, Receipt, AlertCircle, Percent,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +56,7 @@ interface Ligne {
 }
 
 function CaissePage() {
+  const { isAdmin } = useAuth();
   const { magasinId, magasinNom } = useMagasinStore();
   const qc = useQueryClient();
 
@@ -62,7 +64,7 @@ function CaissePage() {
   const [clientId, setClientId] = useState<string>("");
   const [mode, setMode] = useState<ModePaiement>("comptant");
   const [montantPaye, setMontantPaye] = useState<string>("");
-  const [recu, setRecu] = useState<string>("");
+  const [remise, setRemise] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [openProdPicker, setOpenProdPicker] = useState(false);
 
@@ -103,14 +105,15 @@ function CaissePage() {
     }
   }, [clients, clientId]);
 
-  const total = useMemo(
+  const sousTotal = useMemo(
     () => lignes.reduce((s, l) => s + l.quantite * l.prix_unitaire, 0),
     [lignes],
   );
+  const remiseNum = Math.max(0, Math.min(Number(remise || 0), sousTotal));
+  const total = Math.max(0, sousTotal - remiseNum);
 
   const client = clients?.find((c) => c.id === clientId);
   const credit = mode === "comptant" ? 0 : mode === "credit" ? total : Math.max(0, total - Number(montantPaye || 0));
-  const monnaie = mode === "comptant" ? Math.max(0, Number(recu || 0) - total) : 0;
 
   const ajouterProduit = (p: Produit) => {
     if (p.stock_actuel <= 0) { toast.error("Stock épuisé"); return; }
@@ -144,7 +147,7 @@ function CaissePage() {
   const removeLigne = (id: string) => setLignes((prev) => prev.filter((l) => l.produit_id !== id));
 
   const reset = () => {
-    setLignes([]); setMode("comptant"); setMontantPaye(""); setRecu(""); setNotes("");
+    setLignes([]); setMode("comptant"); setMontantPaye(""); setRemise(""); setNotes("");
     const p = clients?.find((c) => c.is_passager_systeme);
     setClientId(p?.id ?? "");
   };
@@ -169,6 +172,7 @@ function CaissePage() {
           prix_unitaire: l.prix_unitaire,
         })),
         p_notes: notes || undefined,
+        p_remise: remiseNum || 0,
       });
       if (error) throw error;
       return data;
@@ -188,7 +192,7 @@ function CaissePage() {
   // Validations live
   const canValidate = useMemo(() => {
     if (!clientId || lignes.length === 0) return false;
-    if (mode === "comptant") return Number(recu || 0) >= total;
+    if (mode === "comptant") return total >= 0;
     if (mode === "credit") {
       if (!client || client.is_passager_systeme) return false;
       return client.dette_totale + total <= client.budget_max;
@@ -198,7 +202,7 @@ function CaissePage() {
     if (p <= 0 || p >= total) return false;
     if (!client || client.is_passager_systeme) return false;
     return client.dette_totale + (total - p) <= client.budget_max;
-  }, [clientId, lignes, mode, montantPaye, recu, total, client]);
+  }, [clientId, lignes, mode, montantPaye, total, client]);
 
   return (
     <div className="p-8 max-w-7xl">
@@ -325,16 +329,37 @@ function CaissePage() {
 
             <Separator />
 
+            {/* Remise (admin uniquement) */}
+            {isAdmin && (
+              <div className="space-y-1.5">
+                <Label htmlFor="remise" className="flex items-center gap-1.5">
+                  <Percent className="w-3.5 h-3.5" /> Réduction (FCFA)
+                </Label>
+                <Input
+                  id="remise" type="number" min="0" max={sousTotal} step="100"
+                  value={remise}
+                  onChange={(e) => setRemise(e.target.value)}
+                  placeholder="0"
+                />
+                {remiseNum > 0 && (
+                  <div className="flex items-center justify-between text-xs pt-0.5">
+                    <span className="text-muted-foreground">Sous-total</span>
+                    <span className="tabular-nums line-through text-muted-foreground">{fmt(sousTotal)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Total */}
             <div className="flex items-center justify-between text-lg">
-              <span className="text-muted-foreground">Total</span>
+              <span className="text-muted-foreground">Total à payer</span>
               <span className="font-bold tabular-nums">{fmt(total)}</span>
             </div>
 
             {/* Mode paiement */}
             <div className="space-y-1.5">
               <Label>Mode de paiement</Label>
-              <Select value={mode} onValueChange={(v) => { setMode(v as ModePaiement); setMontantPaye(""); setRecu(""); }}>
+              <Select value={mode} onValueChange={(v) => { setMode(v as ModePaiement); setMontantPaye(""); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="comptant">Comptant</SelectItem>
@@ -348,22 +373,9 @@ function CaissePage() {
               </Select>
             </div>
 
-            {/* Comptant : calculateur de monnaie */}
-            {mode === "comptant" && (
-              <div className="space-y-1.5">
-                <Label htmlFor="recu">Reçu du client</Label>
-                <Input
-                  id="recu" type="number" min="0" step="100"
-                  value={recu}
-                  onChange={(e) => setRecu(e.target.value)}
-                  placeholder={total.toString()}
-                />
-                <div className="flex items-center justify-between text-sm pt-1">
-                  <span className="text-muted-foreground">Monnaie à rendre</span>
-                  <span className={cn("font-semibold tabular-nums", monnaie > 0 && "text-emerald-600 dark:text-emerald-400")}>
-                    {fmt(monnaie)}
-                  </span>
-                </div>
+            {mode === "comptant" && total > 0 && (
+              <div className="rounded-md border bg-emerald-50 dark:bg-emerald-950/20 p-3 text-sm text-emerald-900 dark:text-emerald-200">
+                Le client doit régler <strong className="tabular-nums">{fmt(total)}</strong> intégralement.
               </div>
             )}
 

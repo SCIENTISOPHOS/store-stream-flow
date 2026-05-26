@@ -479,6 +479,7 @@ export type Database = {
           notes: string | null
           numero: number
           statut: Database["public"]["Enums"]["statut_transaction"]
+          type: string
           vendeur_id: string
         }
         Insert: {
@@ -494,6 +495,7 @@ export type Database = {
           notes?: string | null
           numero: number
           statut?: Database["public"]["Enums"]["statut_transaction"]
+          type?: string
           vendeur_id: string
         }
         Update: {
@@ -509,6 +511,7 @@ export type Database = {
           notes?: string | null
           numero?: number
           statut?: Database["public"]["Enums"]["statut_transaction"]
+          type?: string
           vendeur_id?: string
         }
         Relationships: [
@@ -637,6 +640,7 @@ export type Database = {
           motif_annulation: string | null
           notes: string | null
           numero: number
+          remise: number
           statut: Database["public"]["Enums"]["statut_transaction"]
           vendeur_id: string
         }
@@ -656,6 +660,7 @@ export type Database = {
           motif_annulation?: string | null
           notes?: string | null
           numero: number
+          remise?: number
           statut?: Database["public"]["Enums"]["statut_transaction"]
           vendeur_id: string
         }
@@ -675,6 +680,7 @@ export type Database = {
           motif_annulation?: string | null
           notes?: string | null
           numero?: number
+          remise?: number
           statut?: Database["public"]["Enums"]["statut_transaction"]
           vendeur_id?: string
         }
@@ -728,26 +734,50 @@ export type Database = {
         }
         Returns: string
       }
-      create_recouvrement: {
-        Args: {
-          p_client_id: string
-          p_magasin_id: string
-          p_montant: number
-          p_notes?: string
-        }
-        Returns: string
-      }
-      create_vente: {
-        Args: {
-          p_client_id: string
-          p_lignes: Json
-          p_magasin_id: string
-          p_mode: Database["public"]["Enums"]["mode_paiement"]
-          p_montant_paye: number
-          p_notes?: string
-        }
-        Returns: string
-      }
+      create_recouvrement:
+        | {
+            Args: {
+              p_client_id: string
+              p_magasin_id: string
+              p_montant: number
+              p_notes?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_client_id: string
+              p_magasin_id: string
+              p_montant: number
+              p_notes?: string
+              p_type?: string
+            }
+            Returns: string
+          }
+      create_vente:
+        | {
+            Args: {
+              p_client_id: string
+              p_lignes: Json
+              p_magasin_id: string
+              p_mode: Database["public"]["Enums"]["mode_paiement"]
+              p_montant_paye: number
+              p_notes?: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_client_id: string
+              p_lignes: Json
+              p_magasin_id: string
+              p_mode: Database["public"]["Enums"]["mode_paiement"]
+              p_montant_paye: number
+              p_notes?: string
+              p_remise?: number
+            }
+            Returns: string
+          }
       declare_sac_perce: {
         Args: {
           p_magasin_id: string
