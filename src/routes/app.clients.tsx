@@ -60,11 +60,27 @@ const STATUT_LABELS: Record<EntityStatut, { label: string; variant: "default" | 
 
 function ClientsPage() {
   const { isAdmin } = useAuth();
+  const { magasinId } = useMagasinStore();
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Client | null>(null);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStatut, setFilterStatut] = useState<"tous" | EntityStatut>("tous");
+
+  const { data: magasins } = useQuery({
+    queryKey: ["magasins-list"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("magasins").select("id, nom").order("nom");
+      if (error) throw error;
+      return data as Magasin[];
+    },
+  });
+
+  const magasinNomById = useMemo(() => {
+    const m = new Map<string, string>();
+    (magasins ?? []).forEach((mg) => m.set(mg.id, mg.nom));
+    return m;
+  }, [magasins]);
 
   const { data: clients, isLoading } = useQuery({
     queryKey: ["clients"],
@@ -96,7 +112,7 @@ function ClientsPage() {
   const upsert = useMutation({
     mutationFn: async (c: Partial<Client> & { nom: string }) => {
       if (c.id) {
-        const { error } = await supabase.from("clients").update({
+        const patch: Record<string, unknown> = {
           nom: c.nom,
           telephone: c.telephone,
           ville: c.ville,
@@ -104,11 +120,16 @@ function ClientsPage() {
           statut: c.statut,
           budget_max: c.budget_max,
           notes: c.notes,
-        }).eq("id", c.id);
+        };
+        if (isAdmin) {
+          patch.magasin_id = c.magasin_id ?? null;
+          patch.allow_cross_magasin = c.allow_cross_magasin ?? false;
+        }
+        const { error } = await supabase.from("clients").update(patch).eq("id", c.id);
         if (error) throw error;
       } else {
         const { data: u } = await supabase.auth.getUser();
-        const { error } = await supabase.from("clients").insert({
+        const insert: Record<string, unknown> = {
           nom: c.nom,
           telephone: c.telephone,
           ville: c.ville,
@@ -117,7 +138,10 @@ function ClientsPage() {
           budget_max: c.budget_max ?? 0,
           notes: c.notes,
           created_by: u.user?.id,
-        });
+          magasin_id: isAdmin ? (c.magasin_id ?? null) : magasinId,
+          allow_cross_magasin: isAdmin ? (c.allow_cross_magasin ?? false) : false,
+        };
+        const { error } = await supabase.from("clients").insert(insert);
         if (error) throw error;
       }
     },
