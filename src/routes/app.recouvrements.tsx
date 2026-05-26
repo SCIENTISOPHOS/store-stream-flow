@@ -58,6 +58,7 @@ function RecouvrementsPage() {
   const [clientId, setClientId] = useState("");
   const [montant, setMontant] = useState("");
   const [notes, setNotes] = useState("");
+  const [type, setType] = useState<"paiement" | "reduction">("paiement");
 
   const { data: clients } = useQuery({
     queryKey: ["clients-recouvrement"],
