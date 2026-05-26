@@ -105,14 +105,15 @@ function CaissePage() {
     }
   }, [clients, clientId]);
 
-  const total = useMemo(
+  const sousTotal = useMemo(
     () => lignes.reduce((s, l) => s + l.quantite * l.prix_unitaire, 0),
     [lignes],
   );
+  const remiseNum = Math.max(0, Math.min(Number(remise || 0), sousTotal));
+  const total = Math.max(0, sousTotal - remiseNum);
 
   const client = clients?.find((c) => c.id === clientId);
   const credit = mode === "comptant" ? 0 : mode === "credit" ? total : Math.max(0, total - Number(montantPaye || 0));
-  const monnaie = mode === "comptant" ? Math.max(0, Number(recu || 0) - total) : 0;
 
   const ajouterProduit = (p: Produit) => {
     if (p.stock_actuel <= 0) { toast.error("Stock épuisé"); return; }
