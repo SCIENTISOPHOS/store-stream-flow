@@ -56,6 +56,7 @@ interface Ligne {
 }
 
 function CaissePage() {
+  const { isAdmin } = useAuth();
   const { magasinId, magasinNom } = useMagasinStore();
   const qc = useQueryClient();
 
@@ -63,7 +64,7 @@ function CaissePage() {
   const [clientId, setClientId] = useState<string>("");
   const [mode, setMode] = useState<ModePaiement>("comptant");
   const [montantPaye, setMontantPaye] = useState<string>("");
-  const [recu, setRecu] = useState<string>("");
+  const [remise, setRemise] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [openProdPicker, setOpenProdPicker] = useState(false);
 
