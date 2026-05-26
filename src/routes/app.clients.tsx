@@ -176,7 +176,7 @@ function ClientsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
           <p className="text-muted-foreground mt-1">
-            Fichier centralisé, partagé entre tous les magasins
+            Fichier rattaché par magasin · partage inter-magasin réservé à l'administrateur
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -185,6 +185,9 @@ function ClientsPage() {
           </DialogTrigger>
           <ClientDialog
             editing={editing}
+            isAdmin={isAdmin}
+            currentMagasinId={magasinId}
+            magasins={magasins ?? []}
             onSubmit={(data) => upsert.mutate(data)}
             submitting={upsert.isPending}
           />
@@ -341,13 +344,15 @@ function fmt(n: number) {
 }
 
 function ClientDialog({
-  editing, onSubmit, submitting,
+  editing, isAdmin, currentMagasinId, magasins, onSubmit, submitting,
 }: {
   editing: Client | null;
+  isAdmin: boolean;
+  currentMagasinId: string | null;
+  magasins: Magasin[];
   onSubmit: (c: Partial<Client> & { nom: string }) => void;
   submitting: boolean;
 }) {
-  // RG-STU-06 : formulaire pré-rempli
   const [nom, setNom] = useState(editing?.nom ?? "");
   const [telephone, setTelephone] = useState(editing?.telephone ?? "");
   const [ville, setVille] = useState(editing?.ville ?? "");
@@ -355,6 +360,8 @@ function ClientDialog({
   const [statut, setStatut] = useState<EntityStatut>(editing?.statut ?? "actif");
   const [budgetMax, setBudgetMax] = useState<string>(editing?.budget_max?.toString() ?? "0");
   const [notes, setNotes] = useState(editing?.notes ?? "");
+  const [magasinId, setMagasinId] = useState<string>(editing?.magasin_id ?? currentMagasinId ?? "");
+  const [allowCross, setAllowCross] = useState<boolean>(editing?.allow_cross_magasin ?? false);
 
   useEffect(() => {
     setNom(editing?.nom ?? "");
@@ -364,7 +371,9 @@ function ClientDialog({
     setStatut(editing?.statut ?? "actif");
     setBudgetMax(editing?.budget_max?.toString() ?? "0");
     setNotes(editing?.notes ?? "");
-  }, [editing]);
+    setMagasinId(editing?.magasin_id ?? currentMagasinId ?? "");
+    setAllowCross(editing?.allow_cross_magasin ?? false);
+  }, [editing, currentMagasinId]);
 
   const handle = (e: React.FormEvent) => {
     e.preventDefault();
@@ -377,6 +386,8 @@ function ClientDialog({
       statut,
       budget_max: Number(budgetMax) || 0,
       notes: notes || null,
+      magasin_id: magasinId || null,
+      allow_cross_magasin: allowCross,
     });
   };
 
@@ -385,7 +396,7 @@ function ClientDialog({
       <DialogHeader>
         <DialogTitle>{editing ? "Modifier le client" : "Nouveau client"}</DialogTitle>
         <DialogDescription>
-          Les clients sont partagés entre tous les magasins du réseau.
+          Chaque client est rattaché à un magasin. L'administrateur peut autoriser les achats inter-magasins.
         </DialogDescription>
       </DialogHeader>
       <form onSubmit={handle} className="space-y-4">
@@ -417,6 +428,35 @@ function ClientDialog({
             </Select>
           </div>
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="magasin">Magasin de rattachement</Label>
+          <Select value={magasinId} onValueChange={setMagasinId} disabled={!isAdmin}>
+            <SelectTrigger id="magasin"><SelectValue placeholder="Choisir un magasin" /></SelectTrigger>
+            <SelectContent>
+              {magasins.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.nom}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {!isAdmin && (
+            <p className="text-xs text-muted-foreground">
+              Le client sera rattaché à votre magasin de session. Seul un administrateur peut le déplacer.
+            </p>
+          )}
+        </div>
+
+        {isAdmin && (
+          <div className="flex items-start justify-between gap-3 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <Label htmlFor="cross">Autoriser les achats inter-magasins</Label>
+              <p className="text-xs text-muted-foreground">
+                Si activé, ce client peut acheter dans n'importe quel magasin du réseau.
+              </p>
+            </div>
+            <Switch id="cross" checked={allowCross} onCheckedChange={setAllowCross} />
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
