@@ -447,15 +447,9 @@ function ClientDialog({
         </div>
 
         {isAdmin && (
-          <div className="flex items-start justify-between gap-3 rounded-md border p-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="cross">Autoriser les achats inter-magasins</Label>
-              <p className="text-xs text-muted-foreground">
-                Si activé, ce client peut acheter dans n'importe quel magasin du réseau.
-              </p>
-            </div>
-            <Switch id="cross" checked={allowCross} onCheckedChange={setAllowCross} />
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Un client est rattaché à un seul magasin et ne peut acheter que dans celui-ci.
+          </p>
         )}
 
         <div className="grid grid-cols-2 gap-3">
