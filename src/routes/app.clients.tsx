@@ -3,12 +3,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
+import { useMagasinStore } from "@/lib/magasin-store";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
@@ -22,7 +24,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Users, Search, ShieldAlert, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, ShieldAlert, Lock, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/clients")({
@@ -31,6 +33,8 @@ export const Route = createFileRoute("/app/clients")({
 
 type ClientType = "particulier" | "professionnel" | "passager";
 type EntityStatut = "actif" | "bloque" | "archive";
+
+interface Magasin { id: string; nom: string }
 
 interface Client {
   id: string;
@@ -43,6 +47,8 @@ interface Client {
   dette_totale: number;
   notes: string | null;
   is_passager_systeme: boolean;
+  magasin_id: string | null;
+  allow_cross_magasin: boolean;
   created_at: string;
 }
 
