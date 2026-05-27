@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useMagasinStore } from "@/lib/magasin-store";
 import { ThemeSettings } from "@/components/theme-settings";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import {
   Package,
   Store,
@@ -146,6 +147,7 @@ function AppLayout() {
 
         <div className="p-2 border-t space-y-1" style={{ borderColor: "var(--sidebar-border)" }}>
           {!collapsed && <ThemeSettings />}
+          <ChangePasswordDialog collapsed={collapsed} />
           {!collapsed && <div className="px-3 py-2 text-xs opacity-70 truncate">{user.email}</div>}
           <button
             onClick={() => { signOut(); navigate({ to: "/login" }); }}
