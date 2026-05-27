@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuth } from "@/lib/auth-context";
@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Loader2, Package } from "lucide-react";
-import { useEffect } from "react";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
@@ -18,11 +18,8 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -33,24 +30,11 @@ function LoginPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${window.location.origin}/app`,
-            data: { display_name: displayName, phone },
-          },
-        });
-        if (error) throw error;
-        toast.success("Compte créé. Vous êtes connecté.");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        toast.success("Connexion réussie");
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success("Connexion réussie");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur");
+      toast.error(friendlyAuthError(err));
     } finally {
       setBusy(false);
     }
@@ -64,7 +48,7 @@ function LoginPage() {
       });
       if (result.error) throw result.error;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur Google");
+      toast.error(friendlyAuthError(err));
       setBusy(false);
     }
   };
@@ -82,9 +66,9 @@ function LoginPage() {
 
         <Card className="shadow-[var(--shadow-card)]">
           <CardHeader>
-            <CardTitle>{mode === "signin" ? "Connexion" : "Créer un compte"}</CardTitle>
+            <CardTitle>Connexion</CardTitle>
             <CardDescription>
-              {mode === "signin" ? "Accédez à votre espace de gestion" : "Le premier compte créé deviendra Administrateur"}
+              Accédez à votre espace. Les comptes sont créés par l'administrateur.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -98,41 +82,95 @@ function LoginPage() {
               </div>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === "signup" && (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="display_name">Nom complet</Label>
-                    <Input id="display_name" required value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Téléphone (optionnel)</Label>
-                    <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                  </div>
-                </>
-              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Input id="password" type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Mot de passe</Label>
+                  <ForgotPasswordDialog defaultEmail={email} />
+                </div>
+                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {mode === "signin" ? "Se connecter" : "Créer le compte"}
+                Se connecter
               </Button>
             </form>
-            <button
-              type="button"
-              className="text-sm text-muted-foreground hover:text-foreground w-full text-center"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-            >
-              {mode === "signin" ? "Pas de compte ? Créer un compte" : "Déjà inscrit ? Se connecter"}
-            </button>
+            <p className="text-xs text-muted-foreground text-center">
+              Pas de compte ? Contactez votre administrateur.
+            </p>
           </CardContent>
         </Card>
       </div>
     </main>
   );
+}
+
+function ForgotPasswordDialog({ defaultEmail }: { defaultEmail: string }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState(defaultEmail);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => { setEmail(defaultEmail); }, [defaultEmail]);
+
+  const send = async () => {
+    if (!email) { toast.error("Veuillez saisir votre email"); return; }
+    setBusy(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Email de réinitialisation envoyé. Vérifiez votre boîte mail.");
+      setOpen(false);
+    } catch (err) {
+      toast.error(friendlyAuthError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button type="button" className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline">
+          Mot de passe oublié ?
+        </button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
+          <DialogDescription>
+            Saisissez votre email. Vous recevrez un lien pour définir un nouveau mot de passe.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="reset-email">Email</Label>
+          <Input id="reset-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button onClick={send} disabled={busy}>
+            {busy && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+            Envoyer le lien
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function friendlyAuthError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : String(err);
+  const m = raw.toLowerCase();
+  if (m.includes("invalid login") || m.includes("invalid_credentials")) return "Email ou mot de passe incorrect.";
+  if (m.includes("email not confirmed")) return "Votre email n'est pas encore confirmé.";
+  if (m.includes("user not found")) return "Aucun compte trouvé avec cet email.";
+  if (m.includes("rate limit") || m.includes("too many")) return "Trop de tentatives. Réessayez dans quelques minutes.";
+  if (m.includes("network") || m.includes("fetch")) return "Problème de connexion réseau. Vérifiez votre internet.";
+  if (m.includes("password") && m.includes("short")) return "Le mot de passe doit contenir au moins 8 caractères.";
+  if (m.includes("unsupported provider")) return "La connexion Google n'est pas encore activée.";
+  return "Une erreur est survenue. Veuillez réessayer.";
 }
