@@ -211,13 +211,13 @@ function Dashboard() {
 
   return (
     <div
-      className="p-8 max-w-7xl space-y-6"
+      className="p-4 md:p-8 max-w-7xl space-y-6"
       style={{ ["--dash-accent" as any]: accent, ["--dash-accent-soft" as any]: accentSoft }}
     >
       {/* Header + controls */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tableau de bord</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Tableau de bord</h1>
           <p className="text-muted-foreground mt-1">
             Bienvenue, vous travaillez actuellement sur{" "}
             <span className="font-semibold text-foreground">{magasinNom}</span>.

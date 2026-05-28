@@ -126,10 +126,10 @@ function RecouvrementsPage() {
   );
 
   return (
-    <div className="p-8 max-w-7xl">
+    <div className="p-4 md:p-8 max-w-7xl">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
             <HandCoins className="w-7 h-7" /> Recouvrements
           </h1>
           <p className="text-muted-foreground mt-1">
