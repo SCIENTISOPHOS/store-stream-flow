@@ -198,7 +198,7 @@ function AuditPage() {
     <div className="p-4 md:p-8 max-w-5xl">
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
             <FileClock className="w-7 h-7" /> Journal d'audit
           </h1>
           <p className="text-muted-foreground mt-1 flex items-center gap-1.5 text-sm">
