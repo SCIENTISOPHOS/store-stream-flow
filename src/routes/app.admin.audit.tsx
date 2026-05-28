@@ -195,7 +195,7 @@ function AuditPage() {
   };
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-5xl">
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">

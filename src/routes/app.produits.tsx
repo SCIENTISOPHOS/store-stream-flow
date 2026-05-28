@@ -162,7 +162,7 @@ function ProduitsPage() {
   const openEdit = (p: Produit) => { setEditing(p); setOpen(true); };
 
   return (
-    <div className="p-8 max-w-7xl">
+    <div className="p-4 md:p-8 max-w-7xl">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Produits</h1>

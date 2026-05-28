@@ -211,7 +211,7 @@ function Dashboard() {
 
   return (
     <div
-      className="p-8 max-w-7xl space-y-6"
+      className="p-4 md:p-8 max-w-7xl space-y-6"
       style={{ ["--dash-accent" as any]: accent, ["--dash-accent-soft" as any]: accentSoft }}
     >
       {/* Header + controls */}
