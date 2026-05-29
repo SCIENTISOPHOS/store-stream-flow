@@ -152,7 +152,7 @@ function UtilisateursPage() {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl">
+    <div className="p-4 md:p-8 w-full max-w-6xl min-w-0">
       <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Utilisateurs</h1>
