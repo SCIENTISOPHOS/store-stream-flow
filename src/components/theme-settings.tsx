@@ -29,7 +29,13 @@ export function ThemeSettings() {
           <Palette className="w-4 h-4" /> Apparence
         </button>
       </PopoverTrigger>
-      <PopoverContent side="right" align="end" className="w-72">
+      <PopoverContent
+        side="top"
+        align="start"
+        sideOffset={8}
+        collisionPadding={12}
+        className="w-[min(18rem,calc(100vw-1.5rem))] max-h-[80vh] overflow-y-auto"
+      >
         <div className="space-y-4">
           <div>
             <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">
