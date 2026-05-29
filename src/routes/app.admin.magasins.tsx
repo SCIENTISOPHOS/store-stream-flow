@@ -91,7 +91,7 @@ function MagasinsPage() {
 
   return (
     <div className="p-4 md:p-8 w-full max-w-5xl min-w-0">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Magasins</h1>
           <p className="text-muted-foreground mt-1">Configuration des établissements du réseau</p>
