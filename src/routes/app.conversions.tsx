@@ -100,7 +100,7 @@ function ConversionsPage() {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl">
+    <div className="p-4 md:p-8 w-full max-w-7xl min-w-0">
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight flex items-center gap-2">
           <Repeat className="w-7 h-7" /> Conversions d'emballage
