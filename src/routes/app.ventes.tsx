@@ -101,7 +101,11 @@ function VentesPage() {
                 <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-12">Aucune vente enregistrée</TableCell></TableRow>
               )}
               {ventes?.map((v) => (
-                <TableRow key={v.id} className={v.statut === "annulee" ? "opacity-50" : ""}>
+                <TableRow
+                  key={v.id}
+                  className={`cursor-pointer hover:bg-muted/40 ${v.statut === "annulee" ? "opacity-50" : ""}`}
+                  onClick={() => setDetailVente(v)}
+                >
                   <TableCell className="tabular-nums text-muted-foreground">#{v.numero}</TableCell>
                   <TableCell className="text-sm">
                     {new Date(v.date_vente).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
@@ -118,14 +122,19 @@ function VentesPage() {
                       {v.statut === "annulee" ? "Annulée" : "Validée"}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {isAdmin && v.statut === "validee" && (
-                      <CancelVenteDialog vente={v} onDone={() => {
-                        qc.invalidateQueries({ queryKey: ["ventes", magasinId] });
-                        qc.invalidateQueries({ queryKey: ["produits"] });
-                        qc.invalidateQueries({ queryKey: ["clients"] });
-                      }} />
-                    )}
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1 justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => setDetailVente(v)} title="Voir les détails">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {isAdmin && v.statut === "validee" && (
+                        <CancelVenteDialog vente={v} onDone={() => {
+                          qc.invalidateQueries({ queryKey: ["ventes", magasinId] });
+                          qc.invalidateQueries({ queryKey: ["produits"] });
+                          qc.invalidateQueries({ queryKey: ["clients"] });
+                        }} />
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -133,6 +142,8 @@ function VentesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <VenteDetailDialog vente={detailVente} onClose={() => setDetailVente(null)} />
     </div>
   );
 }
