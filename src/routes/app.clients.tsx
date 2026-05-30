@@ -24,8 +24,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Users, Search, ShieldAlert, Lock, Globe } from "lucide-react";
+import { Plus, Pencil, Trash2, Users, Search, ShieldAlert, Lock, Globe, FileDown, Eye } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
 
 export const Route = createFileRoute("/app/clients")({
   component: ClientsPage,
@@ -64,6 +65,7 @@ function ClientsPage() {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<Client | null>(null);
   const [open, setOpen] = useState(false);
+  const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [search, setSearch] = useState("");
   const [filterStatut, setFilterStatut] = useState<"tous" | EntityStatut>("tous");
 
@@ -254,7 +256,11 @@ function ClientsPage() {
               const budget = Number(c.budget_max) || 0;
               const overBudget = dette > budget && budget > 0;
               return (
-                <TableRow key={c.id} className={c.statut === "archive" ? "opacity-60" : ""}>
+                <TableRow
+                  key={c.id}
+                  className={`cursor-pointer hover:bg-muted/40 ${c.statut === "archive" ? "opacity-60" : ""}`}
+                  onClick={() => setDetailClient(c)}
+                >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       {c.is_passager_systeme && <Lock className="w-3.5 h-3.5 text-muted-foreground" />}
@@ -287,8 +293,15 @@ function ClientsPage() {
                   <TableCell>
                     <Badge variant={STATUT_LABELS[c.statut].variant}>{STATUT_LABELS[c.statut].label}</Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1 justify-end">
+                      <Button
+                        size="icon" variant="ghost"
+                        onClick={() => setDetailClient(c)}
+                        title="Voir les détails"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
                       <Button
                         size="icon" variant="ghost"
                         onClick={() => openEdit(c)}
@@ -335,6 +348,12 @@ function ClientsPage() {
           </TableBody>
         </Table>
       </Card>
+
+      <ClientDetailDialog
+        client={detailClient}
+        magasinNomById={magasinNomById}
+        onClose={() => setDetailClient(null)}
+      />
     </div>
   );
 }
