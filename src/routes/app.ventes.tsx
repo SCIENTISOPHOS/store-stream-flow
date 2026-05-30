@@ -15,7 +15,7 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Receipt, Ban } from "lucide-react";
+import { Receipt, Ban, Eye, User as UserIcon, Calendar, CreditCard, Package } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/ventes")({
@@ -46,6 +46,7 @@ function VentesPage() {
   const { isAdmin } = useAuth();
   const { magasinId, magasinNom } = useMagasinStore();
   const qc = useQueryClient();
+  const [detailVente, setDetailVente] = useState<Vente | null>(null);
 
   const { data: ventes, isLoading } = useQuery({
     queryKey: ["ventes", magasinId],
