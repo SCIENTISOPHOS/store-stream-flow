@@ -23,7 +23,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Package, Search, ShieldAlert, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Search, ShieldAlert, AlertTriangle, PackagePlus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/produits")({
@@ -286,7 +286,10 @@ function ProduitsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)}>
+                      {isAdmin && (
+                        <RestockDialog produit={p} onDone={() => qc.invalidateQueries({ queryKey: ["produits", magasinId] })} />
+                      )}
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)} title="Modifier">
                         <Pencil className="w-4 h-4" />
                       </Button>
                       {isAdmin && (
