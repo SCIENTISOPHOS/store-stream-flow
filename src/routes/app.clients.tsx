@@ -508,3 +508,180 @@ function ClientDialog({
     </DialogContent>
   );
 }
+
+interface ClientVente {
+  id: string;
+  numero: number;
+  date_vente: string;
+  mode_paiement: "comptant" | "credit" | "credit_total" | "mixte";
+  montant_total: number;
+  montant_paye: number;
+  credit_restant: number;
+  statut: string;
+}
+
+function ClientDetailDialog({
+  client, magasinNomById, onClose,
+}: {
+  client: Client | null;
+  magasinNomById: Map<string, string>;
+  onClose: () => void;
+}) {
+  const open = !!client;
+  const { data: ventes, isLoading } = useQuery({
+    queryKey: ["client-ventes", client?.id],
+    enabled: !!client?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ventes")
+        .select("id, numero, date_vente, mode_paiement, montant_total, montant_paye, credit_restant, statut")
+        .eq("client_id", client!.id)
+        .order("date_vente", { ascending: false });
+      if (error) throw error;
+      return data as unknown as ClientVente[];
+    },
+  });
+
+  const totalAchats = (ventes ?? []).filter((v) => v.statut === "validee").reduce((s, v) => s + Number(v.montant_total), 0);
+
+  const exportPdf = () => {
+    if (!client) return;
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const w = doc.internal.pageSize.getWidth();
+    let y = 15;
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Aicha Shop — Fiche client", 14, y); y += 8;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    doc.text(`Édité le ${new Date().toLocaleString("fr-FR")}`, 14, y); y += 8;
+
+    doc.setDrawColor(200); doc.line(14, y, w - 14, y); y += 6;
+    doc.setFontSize(13); doc.setFont("helvetica", "bold");
+    doc.text(client.nom, 14, y); y += 7;
+    doc.setFontSize(10); doc.setFont("helvetica", "normal");
+    const info: [string, string][] = [
+      ["Type", client.type],
+      ["Statut", client.statut],
+      ["Téléphone", client.telephone || "—"],
+      ["Ville", client.ville || "—"],
+      ["Magasin", client.magasin_id ? (magasinNomById.get(client.magasin_id) ?? "—") : "—"],
+      ["Budget max", fmt(Number(client.budget_max) || 0)],
+      ["Dette totale", fmt(Number(client.dette_totale) || 0)],
+      ["Créé le", new Date(client.created_at).toLocaleString("fr-FR")],
+    ];
+    info.forEach(([k, v]) => { doc.text(`${k} :`, 14, y); doc.text(String(v), 55, y); y += 5.5; });
+    if (client.notes) { y += 2; doc.text("Notes :", 14, y); y += 5; doc.text(doc.splitTextToSize(client.notes, w - 28), 14, y); y += 8; }
+
+    y += 4; doc.line(14, y, w - 14, y); y += 6;
+    doc.setFontSize(12); doc.setFont("helvetica", "bold");
+    doc.text(`Historique des achats (${(ventes ?? []).length})`, 14, y); y += 6;
+    doc.setFontSize(9); doc.setFont("helvetica", "bold");
+    doc.text("N°", 14, y); doc.text("Date", 26, y); doc.text("Mode", 64, y); doc.text("Total", 95, y); doc.text("Payé", 120, y); doc.text("Reste", 145, y); doc.text("Statut", 170, y);
+    y += 4; doc.line(14, y, w - 14, y); y += 4;
+    doc.setFont("helvetica", "normal");
+    (ventes ?? []).forEach((v) => {
+      if (y > 280) { doc.addPage(); y = 15; }
+      doc.text(`#${v.numero}`, 14, y);
+      doc.text(new Date(v.date_vente).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }), 26, y);
+      doc.text(v.mode_paiement, 64, y);
+      doc.text(fmt(Number(v.montant_total)), 95, y);
+      doc.text(fmt(Number(v.montant_paye)), 120, y);
+      doc.text(fmt(Number(v.credit_restant)), 145, y);
+      doc.text(v.statut, 170, y);
+      y += 5;
+    });
+    y += 4; doc.setFont("helvetica", "bold");
+    doc.text(`Total des achats validés : ${fmt(totalAchats)}`, 14, y);
+
+    const safe = client.nom.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    doc.save(`fiche-client-${safe}.pdf`);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        {client && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" /> {client.nom}
+              </DialogTitle>
+              <DialogDescription>
+                Fiche client et historique des achats
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+              <Info label="Type" value={<Badge variant="outline" className="capitalize">{client.type}</Badge>} />
+              <Info label="Statut" value={<Badge variant={STATUT_LABELS[client.statut].variant}>{STATUT_LABELS[client.statut].label}</Badge>} />
+              <Info label="Téléphone" value={client.telephone || "—"} />
+              <Info label="Ville" value={client.ville || "—"} />
+              <Info label="Magasin" value={client.magasin_id ? (magasinNomById.get(client.magasin_id) ?? "—") : "—"} />
+              <Info label="Créé le" value={new Date(client.created_at).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })} />
+              <Info label="Budget max" value={<span className="tabular-nums">{fmt(Number(client.budget_max) || 0)}</span>} />
+              <Info label="Dette actuelle" value={<span className={`tabular-nums ${Number(client.dette_totale) > 0 ? "text-amber-600 dark:text-amber-400 font-semibold" : ""}`}>{fmt(Number(client.dette_totale) || 0)}</span>} />
+              <Info label="Total achats validés" value={<span className="tabular-nums font-semibold">{fmt(totalAchats)}</span>} />
+            </div>
+
+            {client.notes && (
+              <div className="rounded-md border bg-muted/30 p-3 text-sm">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Notes</div>
+                {client.notes}
+              </div>
+            )}
+
+            <div>
+              <div className="font-medium mb-2 text-sm">Historique des achats ({(ventes ?? []).length})</div>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[60px]">N°</TableHead>
+                      <TableHead>Date & heure</TableHead>
+                      <TableHead>Mode</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-right">Payé</TableHead>
+                      <TableHead className="text-right">Reste</TableHead>
+                      <TableHead>Statut</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading && <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Chargement...</TableCell></TableRow>}
+                    {!isLoading && (ventes ?? []).length === 0 && (
+                      <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-6">Aucun achat enregistré</TableCell></TableRow>
+                    )}
+                    {(ventes ?? []).map((v) => (
+                      <TableRow key={v.id} className={v.statut === "annulee" ? "opacity-50" : ""}>
+                        <TableCell className="tabular-nums text-muted-foreground">#{v.numero}</TableCell>
+                        <TableCell className="text-xs">{new Date(v.date_vente).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}</TableCell>
+                        <TableCell><Badge variant="outline" className="capitalize">{v.mode_paiement}</Badge></TableCell>
+                        <TableCell className="text-right tabular-nums">{fmt(Number(v.montant_total))}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmt(Number(v.montant_paye))}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmt(Number(v.credit_restant))}</TableCell>
+                        <TableCell><Badge variant={v.statut === "annulee" ? "destructive" : "default"}>{v.statut}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose}>Fermer</Button>
+              <Button onClick={exportPdf} className="gap-2"><FileDown className="w-4 h-4" /> Exporter en PDF</Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Info({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-md border bg-muted/20 p-2.5">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-0.5 truncate">{value}</div>
+    </div>
+  );
+}
