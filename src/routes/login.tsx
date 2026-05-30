@@ -60,8 +60,8 @@ function LoginPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4" style={{ background: "var(--gradient-primary)", boxShadow: "var(--shadow-elegant)" }}>
             <Package className="w-7 h-7 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">StockFlow</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gestion de stocks multi-magasins</p>
+          <h1 className="text-3xl font-bold tracking-tight">Aicha Shop</h1>
+          <p className="text-sm text-muted-foreground mt-1">Gestion de stocks et de ventes multi-magasins</p>
         </div>
 
         <Card className="shadow-[var(--shadow-card)]">

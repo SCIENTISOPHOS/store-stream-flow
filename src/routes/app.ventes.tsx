@@ -15,7 +15,7 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Receipt, Ban } from "lucide-react";
+import { Receipt, Ban, Eye, User as UserIcon, Calendar, CreditCard, Package } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/ventes")({
@@ -46,6 +46,7 @@ function VentesPage() {
   const { isAdmin } = useAuth();
   const { magasinId, magasinNom } = useMagasinStore();
   const qc = useQueryClient();
+  const [detailVente, setDetailVente] = useState<Vente | null>(null);
 
   const { data: ventes, isLoading } = useQuery({
     queryKey: ["ventes", magasinId],
@@ -100,7 +101,11 @@ function VentesPage() {
                 <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-12">Aucune vente enregistrée</TableCell></TableRow>
               )}
               {ventes?.map((v) => (
-                <TableRow key={v.id} className={v.statut === "annulee" ? "opacity-50" : ""}>
+                <TableRow
+                  key={v.id}
+                  className={`cursor-pointer hover:bg-muted/40 ${v.statut === "annulee" ? "opacity-50" : ""}`}
+                  onClick={() => setDetailVente(v)}
+                >
                   <TableCell className="tabular-nums text-muted-foreground">#{v.numero}</TableCell>
                   <TableCell className="text-sm">
                     {new Date(v.date_vente).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}
@@ -117,14 +122,19 @@ function VentesPage() {
                       {v.statut === "annulee" ? "Annulée" : "Validée"}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {isAdmin && v.statut === "validee" && (
-                      <CancelVenteDialog vente={v} onDone={() => {
-                        qc.invalidateQueries({ queryKey: ["ventes", magasinId] });
-                        qc.invalidateQueries({ queryKey: ["produits"] });
-                        qc.invalidateQueries({ queryKey: ["clients"] });
-                      }} />
-                    )}
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1 justify-end">
+                      <Button size="sm" variant="ghost" onClick={() => setDetailVente(v)} title="Voir les détails">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      {isAdmin && v.statut === "validee" && (
+                        <CancelVenteDialog vente={v} onDone={() => {
+                          qc.invalidateQueries({ queryKey: ["ventes", magasinId] });
+                          qc.invalidateQueries({ queryKey: ["produits"] });
+                          qc.invalidateQueries({ queryKey: ["clients"] });
+                        }} />
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -132,6 +142,8 @@ function VentesPage() {
           </Table>
         </CardContent>
       </Card>
+
+      <VenteDetailDialog vente={detailVente} onClose={() => setDetailVente(null)} />
     </div>
   );
 }
@@ -183,4 +195,174 @@ function CancelVenteDialog({ vente, onDone }: { vente: Vente; onDone: () => void
 
 function fmt(n: number) {
   return new Intl.NumberFormat("fr-FR").format(Math.round(Number(n) || 0)) + " F";
+}
+
+interface VenteLigne {
+  id: string;
+  quantite: number;
+  prix_unitaire: number;
+  montant_ligne: number;
+  produits: { nom: string; reference: string | null; type_emballage: string } | null;
+}
+
+function VenteDetailDialog({ vente, onClose }: { vente: Vente | null; onClose: () => void }) {
+  const open = !!vente;
+
+  const { data: details, isLoading } = useQuery({
+    queryKey: ["vente-detail", vente?.id],
+    enabled: !!vente?.id,
+    queryFn: async () => {
+      const [{ data: full, error: e1 }, { data: lignes, error: e2 }] = await Promise.all([
+        supabase
+          .from("ventes")
+          .select("vendeur_id, annulee_par, annulee_le, motif_annulation, remise, montant_credit, notes")
+          .eq("id", vente!.id)
+          .single(),
+        supabase
+          .from("vente_lignes")
+          .select("id, quantite, prix_unitaire, montant_ligne, produits(nom, reference, type_emballage)")
+          .eq("vente_id", vente!.id),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+
+      let vendeurName: string | null = null;
+      let vendeurIsAdmin = false;
+      if (full?.vendeur_id) {
+        const [{ data: prof }, { data: roles }] = await Promise.all([
+          supabase.from("profiles").select("display_name").eq("id", full.vendeur_id).maybeSingle(),
+          supabase.from("user_roles").select("role").eq("user_id", full.vendeur_id),
+        ]);
+        vendeurName = prof?.display_name ?? null;
+        vendeurIsAdmin = (roles ?? []).some((r) => r.role === "admin");
+      }
+
+      return {
+        full,
+        lignes: (lignes ?? []) as unknown as VenteLigne[],
+        vendeurName,
+        vendeurIsAdmin,
+      };
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {vente && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Receipt className="w-5 h-5" /> Vente #{vente.numero}
+                <Badge variant={vente.statut === "annulee" ? "destructive" : "default"} className="ml-2">
+                  {vente.statut === "annulee" ? "Annulée" : "Validée"}
+                </Badge>
+              </DialogTitle>
+              <DialogDescription>Détails complets de la transaction</DialogDescription>
+            </DialogHeader>
+
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <InfoBlock icon={<Calendar className="w-4 h-4" />} label="Date & heure"
+                value={new Date(vente.date_vente).toLocaleString("fr-FR", { dateStyle: "full", timeStyle: "short" })} />
+              <InfoBlock icon={<UserIcon className="w-4 h-4" />} label="Client" value={vente.clients?.nom ?? "—"} />
+              <InfoBlock icon={<CreditCard className="w-4 h-4" />} label="Mode de paiement"
+                value={<Badge variant="outline">{MODE_LABELS[vente.mode_paiement]}</Badge>} />
+              <InfoBlock icon={<UserIcon className="w-4 h-4" />} label="Vendeur"
+                value={
+                  isLoading ? "Chargement..." : (
+                    <span className="flex items-center gap-2">
+                      {details?.vendeurName || "Utilisateur inconnu"}
+                      <Badge variant={details?.vendeurIsAdmin ? "default" : "secondary"} className="text-[10px]">
+                        {details?.vendeurIsAdmin ? "Administrateur" : "Utilisateur"}
+                      </Badge>
+                    </span>
+                  )
+                } />
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3 grid grid-cols-3 gap-3 text-sm">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Total</div>
+                <div className="font-semibold tabular-nums">{fmt(vente.montant_total)}</div>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Payé</div>
+                <div className="tabular-nums text-emerald-700 dark:text-emerald-400 font-medium">{fmt(vente.montant_paye)}</div>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted-foreground">Crédit restant</div>
+                <div className={`tabular-nums font-medium ${Number(vente.credit_restant) > 0 ? "text-amber-600 dark:text-amber-400" : ""}`}>{fmt(vente.credit_restant)}</div>
+              </div>
+            </div>
+
+            <div>
+              <div className="font-medium mb-2 text-sm flex items-center gap-2">
+                <Package className="w-4 h-4" /> Produits ({(details?.lignes ?? []).length})
+              </div>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Produit</TableHead>
+                      <TableHead>Réf.</TableHead>
+                      <TableHead className="text-right">Qté</TableHead>
+                      <TableHead className="text-right">PU</TableHead>
+                      <TableHead className="text-right">Montant</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {isLoading && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Chargement...</TableCell></TableRow>}
+                    {!isLoading && (details?.lignes ?? []).length === 0 && (
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-6">Aucune ligne</TableCell></TableRow>
+                    )}
+                    {(details?.lignes ?? []).map((l) => (
+                      <TableRow key={l.id}>
+                        <TableCell className="font-medium">{l.produits?.nom ?? "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{l.produits?.reference ?? "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">{Number(l.quantite)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmt(Number(l.prix_unitaire))}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">{fmt(Number(l.montant_ligne))}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {vente.notes && (
+              <div className="rounded-md border bg-muted/20 p-3 text-sm">
+                <div className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Notes</div>
+                {vente.notes}
+              </div>
+            )}
+
+            {vente.statut === "annulee" && details?.full?.motif_annulation && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm">
+                <div className="text-xs uppercase tracking-wide text-destructive mb-1">Motif d'annulation</div>
+                {details.full.motif_annulation}
+                {details.full.annulee_le && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Annulée le {new Date(details.full.annulee_le).toLocaleString("fr-FR")}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose}>Fermer</Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function InfoBlock({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
+  return (
+    <div className="rounded-md border bg-muted/20 p-3">
+      <div className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">{icon} {label}</div>
+      <div className="mt-1 font-medium">{value}</div>
+    </div>
+  );
 }

@@ -54,6 +54,21 @@ function Dashboard() {
   const { user, isAdmin } = useAuth();
   const { magasinId, magasinNom } = useMagasinStore();
 
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("display_name")
+        .eq("id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const userName = profile?.display_name?.trim() || user?.email?.split("@")[0] || "Utilisateur";
+
   const [periode, setPeriode] = useState<Periode>(() => {
     const v = Number(localStorage.getItem("dash-periode"));
     return (v === 7 || v === 90 ? v : 30) as Periode;
@@ -299,7 +314,7 @@ function Dashboard() {
                 <CardDescription>Utilisateur</CardDescription>
                 <UserIcon className="w-4 h-4 text-muted-foreground" />
               </div>
-              <CardTitle className="text-base font-medium truncate">{user?.email}</CardTitle>
+              <CardTitle className="text-base font-medium truncate">{userName}</CardTitle>
             </CardHeader>
           </Card>
           <Card>

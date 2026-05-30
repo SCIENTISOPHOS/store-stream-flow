@@ -23,7 +23,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, Package, Search, ShieldAlert, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Package, Search, ShieldAlert, AlertTriangle, PackagePlus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app/produits")({
@@ -286,7 +286,10 @@ function ProduitsPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex gap-1 justify-end">
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)}>
+                      {isAdmin && (
+                        <RestockDialog produit={p} onDone={() => qc.invalidateQueries({ queryKey: ["produits", magasinId] })} />
+                      )}
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(p)} title="Modifier">
                         <Pencil className="w-4 h-4" />
                       </Button>
                       {isAdmin && (
@@ -473,5 +476,66 @@ function ProduitDialog({
         </DialogFooter>
       </form>
     </DialogContent>
+  );
+}
+
+function RestockDialog({ produit, onDone }: { produit: Produit; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [qty, setQty] = useState("");
+  const [notes, setNotes] = useState("");
+  const m = useMutation({
+    mutationFn: async () => {
+      const q = Number(qty);
+      if (!q || q <= 0) throw new Error("Quantité invalide");
+      const { error } = await supabase
+        .from("produits")
+        .update({ stock_actuel: Number(produit.stock_actuel) + q, notes: notes || produit.notes })
+        .eq("id", produit.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`Stock approvisionné : +${qty} ${EMBALLAGE_LABELS[produit.type_emballage]}`);
+      setOpen(false); setQty(""); setNotes(""); onDone();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" className="text-emerald-600 hover:text-emerald-700" title="Approvisionner">
+          <PackagePlus className="w-4 h-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Approvisionner — {produit.nom}</DialogTitle>
+          <DialogDescription>
+            Stock actuel : <strong>{Number(produit.stock_actuel)}</strong> {EMBALLAGE_LABELS[produit.type_emballage]}.
+            Saisissez la quantité reçue à ajouter au stock.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="qty">Quantité reçue *</Label>
+            <Input id="qty" type="number" min="0" step="1" value={qty} onChange={(e) => setQty(e.target.value)} autoFocus />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="rn">Notes (facultatif)</Label>
+            <Textarea id="rn" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="N° bon de livraison, fournisseur..." />
+          </div>
+          {qty && Number(qty) > 0 && (
+            <div className="rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 p-3 text-sm">
+              Nouveau stock : <strong>{Number(produit.stock_actuel) + Number(qty)}</strong> {EMBALLAGE_LABELS[produit.type_emballage]}
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+          <Button onClick={() => m.mutate()} disabled={m.isPending || !qty || Number(qty) <= 0}>
+            {m.isPending ? "Enregistrement..." : "Confirmer"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
