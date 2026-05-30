@@ -105,7 +105,7 @@ function AppLayout() {
         </div>
         {showLabels && (
           <div className="flex-1 overflow-hidden">
-            <div className="font-bold tracking-tight truncate">StockFlow</div>
+            <div className="font-bold tracking-tight truncate">Aicha Shop</div>
             <div className="text-[10px] uppercase tracking-wider opacity-60 truncate">Multi-magasins</div>
           </div>
         )}
@@ -227,7 +227,7 @@ function AppLayout() {
               <Package className="w-4 h-4 text-primary-foreground" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-sm truncate leading-tight">StockFlow</div>
+              <div className="font-bold text-sm truncate leading-tight">Aicha Shop</div>
               <div className="text-[10px] opacity-70 truncate">{magasinNom ?? "—"}</div>
             </div>
           </header>
