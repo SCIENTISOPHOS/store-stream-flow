@@ -120,13 +120,14 @@ export async function logAuditEvent(params: {
     await supabase.rpc("log_audit_event", {
       p_action: params.action,
       p_table_name: params.table_name,
-      p_record_id: params.record_id ?? null,
-      p_details: params.details ?? null,
-      p_magasin_id: params.magasin_id ?? null,
-      p_after_data: null,
+      p_record_id: params.record_id ?? undefined,
+      p_details: params.details ?? undefined,
+      p_magasin_id: params.magasin_id ?? undefined,
+      p_after_data: undefined,
     });
   } catch (e) {
     // Audit failure should never break the user action
     console.error("Audit log failed:", e);
   }
+
 }
