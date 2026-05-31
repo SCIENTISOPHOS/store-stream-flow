@@ -487,11 +487,22 @@ function RestockDialog({ produit, onDone }: { produit: Produit; onDone: () => vo
     mutationFn: async () => {
       const q = Number(qty);
       if (!q || q <= 0) throw new Error("Quantité invalide");
+      const newStock = Number(produit.stock_actuel) + q;
       const { error } = await supabase
         .from("produits")
-        .update({ stock_actuel: Number(produit.stock_actuel) + q, notes: notes || produit.notes })
+        .update({ stock_actuel: newStock, notes: notes || produit.notes })
         .eq("id", produit.id);
       if (error) throw error;
+
+      // Audit explicite : "approvisionnement"
+      const { logAuditEvent } = await import("@/lib/pdf-utils");
+      await logAuditEvent({
+        action: "RESTOCK",
+        table_name: "produits",
+        record_id: produit.id,
+        magasin_id: produit.magasin_id,
+        details: `Approvisionnement de ${q} ${EMBALLAGE_LABELS[produit.type_emballage]} du produit « ${produit.nom} » (stock : ${produit.stock_actuel} → ${newStock})${notes ? ` — ${notes}` : ""}`,
+      });
     },
     onSuccess: () => {
       toast.success(`Stock approvisionné : +${qty} ${EMBALLAGE_LABELS[produit.type_emballage]}`);
@@ -539,3 +550,4 @@ function RestockDialog({ produit, onDone }: { produit: Produit; onDone: () => vo
     </Dialog>
   );
 }
+

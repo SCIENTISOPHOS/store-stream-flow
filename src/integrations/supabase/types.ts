@@ -797,6 +797,17 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      log_audit_event: {
+        Args: {
+          p_action: string
+          p_after_data?: Json
+          p_details?: string
+          p_magasin_id?: string
+          p_record_id?: string
+          p_table_name: string
+        }
+        Returns: string
+      }
       user_can_access_magasin: {
         Args: { _magasin_id: string; _user_id: string }
         Returns: boolean
