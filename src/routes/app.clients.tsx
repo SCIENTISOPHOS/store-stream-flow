@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Users, Search, ShieldAlert, Lock, Globe, FileDown, Eye } from "lucide-react";
 import { toast } from "sonner";
-import jsPDF from "jspdf";
+import { createPdf, pdfInfoTable, pdfDataTable, pdfSectionTitle, fmtMoney, fmtDateTime, logAuditEvent } from "@/lib/pdf-utils";
 
 export const Route = createFileRoute("/app/clients")({
   component: ClientsPage,
@@ -544,58 +544,76 @@ function ClientDetailDialog({
 
   const totalAchats = (ventes ?? []).filter((v) => v.statut === "validee").reduce((s, v) => s + Number(v.montant_total), 0);
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     if (!client) return;
-    const doc = new jsPDF({ unit: "mm", format: "a4" });
-    const w = doc.internal.pageSize.getWidth();
-    let y = 15;
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Aicha Shop — Fiche client", 14, y); y += 8;
-    doc.setFontSize(10); doc.setFont("helvetica", "normal");
-    doc.text(`Édité le ${new Date().toLocaleString("fr-FR")}`, 14, y); y += 8;
+    const { doc, cursorY } = createPdf("Fiche client", client.nom);
+    let y = cursorY;
 
-    doc.setDrawColor(200); doc.line(14, y, w - 14, y); y += 6;
-    doc.setFontSize(13); doc.setFont("helvetica", "bold");
-    doc.text(client.nom, 14, y); y += 7;
-    doc.setFontSize(10); doc.setFont("helvetica", "normal");
-    const info: [string, string][] = [
+    y = pdfSectionTitle(doc, y, "Informations");
+    y = pdfInfoTable(doc, y, [
+      ["Nom", client.nom],
       ["Type", client.type],
       ["Statut", client.statut],
       ["Téléphone", client.telephone || "—"],
       ["Ville", client.ville || "—"],
       ["Magasin", client.magasin_id ? (magasinNomById.get(client.magasin_id) ?? "—") : "—"],
-      ["Budget max", fmt(Number(client.budget_max) || 0)],
-      ["Dette totale", fmt(Number(client.dette_totale) || 0)],
-      ["Créé le", new Date(client.created_at).toLocaleString("fr-FR")],
-    ];
-    info.forEach(([k, v]) => { doc.text(`${k} :`, 14, y); doc.text(String(v), 55, y); y += 5.5; });
-    if (client.notes) { y += 2; doc.text("Notes :", 14, y); y += 5; doc.text(doc.splitTextToSize(client.notes, w - 28), 14, y); y += 8; }
+      ["Budget max", fmtMoney(client.budget_max)],
+      ["Dette totale", fmtMoney(client.dette_totale)],
+      ["Créé le", fmtDateTime(client.created_at)],
+    ]);
 
-    y += 4; doc.line(14, y, w - 14, y); y += 6;
-    doc.setFontSize(12); doc.setFont("helvetica", "bold");
-    doc.text(`Historique des achats (${(ventes ?? []).length})`, 14, y); y += 6;
-    doc.setFontSize(9); doc.setFont("helvetica", "bold");
-    doc.text("N°", 14, y); doc.text("Date", 26, y); doc.text("Mode", 64, y); doc.text("Total", 95, y); doc.text("Payé", 120, y); doc.text("Reste", 145, y); doc.text("Statut", 170, y);
-    y += 4; doc.line(14, y, w - 14, y); y += 4;
-    doc.setFont("helvetica", "normal");
-    (ventes ?? []).forEach((v) => {
-      if (y > 280) { doc.addPage(); y = 15; }
-      doc.text(`#${v.numero}`, 14, y);
-      doc.text(new Date(v.date_vente).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }), 26, y);
-      doc.text(v.mode_paiement, 64, y);
-      doc.text(fmt(Number(v.montant_total)), 95, y);
-      doc.text(fmt(Number(v.montant_paye)), 120, y);
-      doc.text(fmt(Number(v.credit_restant)), 145, y);
-      doc.text(v.statut, 170, y);
-      y += 5;
-    });
-    y += 4; doc.setFont("helvetica", "bold");
-    doc.text(`Total des achats validés : ${fmt(totalAchats)}`, 14, y);
+    if (client.notes) {
+      y = pdfSectionTitle(doc, y + 2, "Notes");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(40, 40, 40);
+      const lines = doc.splitTextToSize(client.notes, 180);
+      doc.text(lines, 14, y + 2);
+      y += 2 + lines.length * 5;
+    }
+
+    y = pdfSectionTitle(doc, y + 4, `Historique des achats (${(ventes ?? []).length})`);
+    const body = (ventes ?? []).map((v) => [
+      `#${v.numero}`,
+      fmtDateTime(v.date_vente),
+      v.mode_paiement,
+      fmtMoney(v.montant_total),
+      fmtMoney(v.montant_paye),
+      fmtMoney(v.credit_restant),
+      v.statut,
+    ]);
+    y = pdfDataTable(
+      doc,
+      y + 2,
+      ["N°", "Date", "Mode", "Total", "Payé", "Reste", "Statut"],
+      body,
+      {
+        columnStyles: {
+          0: { halign: "right", cellWidth: 16 },
+          3: { halign: "right" },
+          4: { halign: "right" },
+          5: { halign: "right" },
+        },
+      },
+    );
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(20, 20, 20);
+    doc.text(`Total des achats validés : ${fmtMoney(totalAchats)}`, 14, y + 4);
 
     const safe = client.nom.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
     doc.save(`fiche-client-${safe}.pdf`);
+
+    await logAuditEvent({
+      action: "EXPORT_PDF",
+      table_name: "clients",
+      record_id: client.id,
+      magasin_id: client.magasin_id,
+      details: `Export PDF de la fiche client « ${client.nom} » (${(ventes ?? []).length} achat${(ventes ?? []).length > 1 ? "s" : ""})`,
+    });
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
