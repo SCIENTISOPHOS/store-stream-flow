@@ -227,7 +227,7 @@ function CaissePage() {
                 <PopoverTrigger asChild>
                   <Button size="sm"><Plus className="w-4 h-4 mr-1.5" /> Ajouter produit</Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[360px] p-0" align="end">
+                <PopoverContent className="w-[min(22rem,calc(100vw-1.5rem))] p-0" align="end" collisionPadding={12}>
                   <Command>
                     <CommandInput placeholder="Rechercher un produit..." />
                     <CommandList>
