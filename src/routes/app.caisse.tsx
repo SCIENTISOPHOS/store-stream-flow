@@ -97,11 +97,11 @@ function CaissePage() {
     },
   });
 
-  // Auto-sélection du Passager au montage
+  // Auto-sélection : Passager système si dispo, sinon premier client
   useEffect(() => {
-    if (!clientId && clients) {
-      const p = clients.find((c) => c.is_passager_systeme);
-      if (p) setClientId(p.id);
+    if (!clientId && clients && clients.length > 0) {
+      const p = clients.find((c) => c.is_passager_systeme) ?? clients[0];
+      setClientId(p.id);
     }
   }, [clients, clientId]);
 
