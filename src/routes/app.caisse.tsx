@@ -363,14 +363,15 @@ function CaissePage() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="comptant">Comptant</SelectItem>
-                  <SelectItem value="credit" disabled={!client || client.is_passager_systeme}>
-                    Crédit{client?.is_passager_systeme ? " (non dispo pour Passager)" : ""}
-                  </SelectItem>
-                  <SelectItem value="mixte" disabled={!client || client.is_passager_systeme}>
-                    Mixte (avance + crédit)
-                  </SelectItem>
+                  <SelectItem value="credit">Crédit</SelectItem>
+                  <SelectItem value="mixte">Mixte (avance + crédit)</SelectItem>
                 </SelectContent>
               </Select>
+              {(mode === "credit" || mode === "mixte") && (!client || client.is_passager_systeme) && (
+                <div className="text-xs text-destructive pt-1">
+                  Sélectionnez un client identifié (pas le Passager) pour vendre à crédit.
+                </div>
+              )}
             </div>
 
             {mode === "comptant" && total > 0 && (
