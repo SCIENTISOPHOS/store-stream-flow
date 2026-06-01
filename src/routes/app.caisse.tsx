@@ -97,11 +97,11 @@ function CaissePage() {
     },
   });
 
-  // Auto-sélection : Passager système si dispo, sinon premier client
+  // Auto-sélection du Passager au montage
   useEffect(() => {
-    if (!clientId && clients && clients.length > 0) {
-      const p = clients.find((c) => c.is_passager_systeme) ?? clients[0];
-      setClientId(p.id);
+    if (!clientId && clients) {
+      const p = clients.find((c) => c.is_passager_systeme);
+      if (p) setClientId(p.id);
     }
   }, [clients, clientId]);
 
@@ -227,7 +227,7 @@ function CaissePage() {
                 <PopoverTrigger asChild>
                   <Button size="sm"><Plus className="w-4 h-4 mr-1.5" /> Ajouter produit</Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[min(22rem,calc(100vw-1.5rem))] p-0" align="end" collisionPadding={12}>
+                <PopoverContent className="w-[360px] p-0" align="end">
                   <Command>
                     <CommandInput placeholder="Rechercher un produit..." />
                     <CommandList>
@@ -264,12 +264,12 @@ function CaissePage() {
             ) : (
               <div className="space-y-2">
                 {lignes.map((l) => (
-                  <div key={l.produit_id} className="flex flex-wrap items-center gap-2 sm:gap-3 p-3 rounded-md border bg-card">
-                    <div className="flex-1 min-w-[10rem] basis-full sm:basis-auto">
+                  <div key={l.produit_id} className="flex items-center gap-3 p-3 rounded-md border bg-card">
+                    <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{l.nom}</div>
                       <div className="text-xs text-muted-foreground">Stock dispo : {l.stock_disponible}</div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQte(l.produit_id, l.quantite - 1)}>
                         <Minus className="w-3 h-3" />
                       </Button>
@@ -277,25 +277,25 @@ function CaissePage() {
                         type="number" min="1" max={l.stock_disponible}
                         value={l.quantite}
                         onChange={(e) => updateQte(l.produit_id, Number(e.target.value) || 1)}
-                        className="w-14 sm:w-16 h-8 text-center tabular-nums"
+                        className="w-16 h-8 text-center tabular-nums"
                       />
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQte(l.produit_id, l.quantite + 1)}>
                         <Plus className="w-3 h-3" />
                       </Button>
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm shrink-0">
+                    <div className="flex items-center gap-1.5 text-sm">
                       <span className="text-muted-foreground">×</span>
                       <Input
                         type="number" min="0" step="50"
                         value={l.prix_unitaire}
                         onChange={(e) => updatePrix(l.produit_id, Number(e.target.value) || 0)}
-                        className="w-20 sm:w-24 h-8 text-right tabular-nums"
+                        className="w-24 h-8 text-right tabular-nums"
                       />
                     </div>
-                    <div className="flex-1 sm:flex-none sm:w-28 text-right font-medium tabular-nums">
+                    <div className="w-28 text-right font-medium tabular-nums">
                       {fmt(l.quantite * l.prix_unitaire)}
                     </div>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive shrink-0" onClick={() => removeLigne(l.produit_id)}>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeLigne(l.produit_id)}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -363,15 +363,14 @@ function CaissePage() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="comptant">Comptant</SelectItem>
-                  <SelectItem value="credit">Crédit</SelectItem>
-                  <SelectItem value="mixte">Mixte (avance + crédit)</SelectItem>
+                  <SelectItem value="credit" disabled={!client || client.is_passager_systeme}>
+                    Crédit{client?.is_passager_systeme ? " (non dispo pour Passager)" : ""}
+                  </SelectItem>
+                  <SelectItem value="mixte" disabled={!client || client.is_passager_systeme}>
+                    Mixte (avance + crédit)
+                  </SelectItem>
                 </SelectContent>
               </Select>
-              {(mode === "credit" || mode === "mixte") && (!client || client.is_passager_systeme) && (
-                <div className="text-xs text-destructive pt-1">
-                  Sélectionnez un client identifié (pas le Passager) pour vendre à crédit.
-                </div>
-              )}
             </div>
 
             {mode === "comptant" && total > 0 && (
