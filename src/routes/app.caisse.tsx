@@ -313,7 +313,28 @@ function CaissePage() {
           <CardContent className="space-y-4">
             {/* Client */}
             <div className="space-y-1.5">
-              <Label>Client</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>Client</Label>
+                {(() => {
+                  const passager = clients?.find((c) => c.is_passager_systeme);
+                  if (!passager) return null;
+                  const isSel = clientId === passager.id;
+                  return (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={isSel ? "secondary" : "outline"}
+                      className="h-7 text-xs"
+                      onClick={() => {
+                        setClientId(passager.id);
+                        if (mode !== "comptant") { setMode("comptant"); setMontantPaye(""); }
+                      }}
+                    >
+                      Client passager
+                    </Button>
+                  );
+                })()}
+              </div>
               <ClientPicker
                 clients={clients ?? []}
                 value={clientId}
