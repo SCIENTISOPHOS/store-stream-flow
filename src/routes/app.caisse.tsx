@@ -217,7 +217,7 @@ function CaissePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 lg:gap-6">
         {/* Panier */}
         <Card>
           <CardHeader className="pb-3">
