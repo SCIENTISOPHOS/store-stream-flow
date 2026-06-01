@@ -264,12 +264,15 @@ function CaissePage() {
             ) : (
               <div className="space-y-2">
                 {lignes.map((l) => (
-                  <div key={l.produit_id} className="flex items-center gap-3 p-3 rounded-md border bg-card">
-                    <div className="flex-1 min-w-0">
+                  <div key={l.produit_id} className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 p-3 rounded-md border bg-card">
+                    <div className="flex-1 min-w-[60%] sm:min-w-0">
                       <div className="font-medium truncate">{l.nom}</div>
                       <div className="text-xs text-muted-foreground">Stock dispo : {l.stock_disponible}</div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive sm:order-last shrink-0" onClick={() => removeLigne(l.produit_id)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQte(l.produit_id, l.quantite - 1)}>
                         <Minus className="w-3 h-3" />
                       </Button>
@@ -277,27 +280,24 @@ function CaissePage() {
                         type="number" min="1" max={l.stock_disponible}
                         value={l.quantite}
                         onChange={(e) => updateQte(l.produit_id, Number(e.target.value) || 1)}
-                        className="w-16 h-8 text-center tabular-nums"
+                        className="w-14 h-8 text-center tabular-nums"
                       />
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateQte(l.produit_id, l.quantite + 1)}>
                         <Plus className="w-3 h-3" />
                       </Button>
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm">
+                    <div className="flex items-center gap-1.5 text-sm shrink-0">
                       <span className="text-muted-foreground">×</span>
                       <Input
                         type="number" min="0" step="50"
                         value={l.prix_unitaire}
                         onChange={(e) => updatePrix(l.produit_id, Number(e.target.value) || 0)}
-                        className="w-24 h-8 text-right tabular-nums"
+                        className="w-20 sm:w-24 h-8 text-right tabular-nums"
                       />
                     </div>
-                    <div className="w-28 text-right font-medium tabular-nums">
+                    <div className="ml-auto sm:ml-0 sm:w-28 text-right font-semibold tabular-nums">
                       {fmt(l.quantite * l.prix_unitaire)}
                     </div>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removeLigne(l.produit_id)}>
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
                   </div>
                 ))}
               </div>
