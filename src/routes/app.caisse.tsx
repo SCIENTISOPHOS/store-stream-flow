@@ -384,14 +384,22 @@ function CaissePage() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="comptant">Comptant</SelectItem>
-                  <SelectItem value="credit" disabled={!client || client.is_passager_systeme}>
-                    Crédit{client?.is_passager_systeme ? " (non dispo pour Passager)" : ""}
-                  </SelectItem>
-                  <SelectItem value="mixte" disabled={!client || client.is_passager_systeme}>
-                    Mixte (avance + crédit)
-                  </SelectItem>
+                  <SelectItem value="credit">Crédit</SelectItem>
+                  <SelectItem value="mixte">Mixte (avance + crédit)</SelectItem>
                 </SelectContent>
               </Select>
+              {(mode === "credit" || mode === "mixte") && (!client || client.is_passager_systeme) && (
+                <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-900 p-2.5 text-xs text-amber-800 dark:text-amber-200 flex gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>Le crédit et le paiement mixte nécessitent un client enregistré. Sélectionnez un client autre que « Passager ».</span>
+                </div>
+              )}
+              {(mode === "credit" || mode === "mixte") && client && !client.is_passager_systeme && client.budget_max <= 0 && (
+                <div className="rounded-md border border-destructive/40 bg-destructive/5 p-2.5 text-xs text-destructive flex gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>Ce client n'a pas de plafond de crédit défini. Un administrateur doit configurer son budget maximum avant toute vente à crédit.</span>
+                </div>
+              )}
             </div>
 
             {mode === "comptant" && total > 0 && (
