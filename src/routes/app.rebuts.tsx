@@ -115,7 +115,7 @@ function RebutsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 lg:gap-6">
         <Card>
           <CardHeader className="pb-3"><CardTitle>Nouveau rebut</CardTitle></CardHeader>
           <CardContent className="space-y-4">

@@ -333,7 +333,7 @@ function Dashboard() {
         </div>
 
         {/* KPIs cliquables */}
-        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
           <KpiLink to="/app/ventes" search={{ periode }} icon={<TrendingUp className="w-4 h-4" />} label="CA du jour" value={fmtFC(caJour)} accent={accent} />
           <KpiLink to="/app/ventes" search={{ periode }} icon={<TrendingUp className="w-4 h-4" />} label={`CA ${periode} j`} value={fmtFC(caPeriode)} accent={accent} />
           <KpiLink to="/app/produits" icon={<Package className="w-4 h-4" />} label="Valeur stock" value={fmtFC(stockValeur)} accent={accent} />
