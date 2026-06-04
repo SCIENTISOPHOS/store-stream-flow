@@ -139,7 +139,7 @@ function RecouvrementsPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-4 lg:gap-6">
         {/* Form */}
         <Card>
           <CardHeader className="pb-3">
